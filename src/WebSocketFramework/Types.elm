@@ -1,13 +1,18 @@
 module WebSocketFramework.Types
     exposing
-        ( MessageEncoder
+        ( ErrorRsp
+        , MessageEncoder
         , MessageParser
+        , ModeChecker
+        , PlayerInfo
         , Plist
         , PublicGame
         , PublicGames
         , RawMessage
         , ReqRsp(..)
         , ServerInterface(..)
+        , ServerMessageProcessor
+        , ServerState
         , emptyPublicGames
         )
 
@@ -29,6 +34,12 @@ type alias RawMessage =
     }
 
 
+type alias ErrorRsp message =
+    { request : message
+    , text : String
+    }
+
+
 type ReqRsp
     = Req String
     | Rsp String
@@ -40,6 +51,14 @@ type alias MessageParser message =
 
 type alias MessageEncoder message =
     message -> ( ReqRsp, Plist )
+
+
+type alias ModeChecker gamestate =
+    gamestate -> Result String Never
+
+
+type alias ServerMessageProcessor gamestate player message =
+    ServerState gamestate player -> message -> ( ServerState gamestate player, message )
 
 
 type alias PlayerInfo player =
@@ -72,13 +91,14 @@ type alias ServerState gamestate player =
     { gameDict : Dict String gamestate --gameid
     , playerDict : Dict String (PlayerInfo player) --playerid
     , publicGames : PublicGames
+    , state : Maybe gamestate --used by servers with no concept of game or player
     }
 
 
 type ServerInterface gamestate player message msg
     = ServerInterface
         { server : String
-        , wrapper : ServerInterface msg -> message -> msg
+        , wrapper : ServerInterface gamestate player message msg -> message -> msg
         , state : Maybe (ServerState gamestate player)
-        , sender : ServerInterface msg -> message -> Cmd msg
+        , sender : ServerInterface gamestate player message msg -> message -> Cmd msg
         }
