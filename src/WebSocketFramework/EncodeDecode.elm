@@ -13,6 +13,7 @@
 module WebSocketFramework.EncodeDecode
     exposing
         ( decodeMessage
+        , decodePlist
         , decodeRawMessage
         , decodeServerInterface
         , encodeMessage
@@ -161,3 +162,8 @@ rawMessageEncoder message =
         , JE.string message.msg
         , JE.object message.plist
         ]
+
+
+decodePlist : Decoder message -> Plist -> Result String message
+decodePlist decoder plist =
+    JD.decodeValue decoder <| JE.object plist

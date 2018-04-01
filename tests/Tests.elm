@@ -2,12 +2,12 @@ module Tests exposing (all)
 
 import Dict
 import Expect exposing (Expectation)
-import Json.Decode as JD
-import Json.Encode as JE
+import Json.Decode as JD exposing (Decoder)
+import Json.Encode as JE exposing (Value)
 import List
 import Maybe exposing (withDefault)
 import Test exposing (..)
-import WebSocketFramework.EncodeDecode as ED
+import WebSocketFramework.EncodeDecode as ED exposing (decodePlist)
 import WebSocketFramework.Types as Types
     exposing
         ( MessageParser
@@ -105,9 +105,50 @@ encoder message =
             )
 
 
-parser : MessageParser Message
+parser : ReqRsp -> Plist -> Result String Message
 parser reqrsp plist =
-    Err "TBD"
+    case reqrsp of
+        Req msg ->
+            case msg of
+                "join" ->
+                    decodePlist joinDecoder plist
+
+                "leave" ->
+                    Ok Leave
+
+                _ ->
+                    Err <| "Unknown request: '" ++ msg ++ "'"
+
+        Rsp msg ->
+            case msg of
+                "joined" ->
+                    decodePlist joinedDecoder plist
+
+                "left" ->
+                    decodePlist leftDecoder plist
+
+                _ ->
+                    Err <| "Unknown response: '" ++ msg ++ "'"
+
+
+joinDecoder : Decoder Message
+joinDecoder =
+    JD.map Join
+        (JD.field "gameid" JD.string)
+
+
+joinedDecoder : Decoder Message
+joinedDecoder =
+    JD.map2 Joined
+        (JD.field "gameid" JD.string)
+        (JD.field "playerid" JD.string)
+
+
+leftDecoder : Decoder Message
+leftDecoder =
+    JD.map2 Left
+        (JD.field "gameid" JD.string)
+        (JD.field "playerid" JD.string)
 
 
 protocolTest : Message -> String -> Test
@@ -124,4 +165,8 @@ protocolTest message name =
 
 protocolData : List Message
 protocolData =
-    []
+    [ Join "<gameid>"
+    , Joined "<gameid>" "<playerid>"
+    , Leave
+    , Left "<gameid>" "<playerid>"
+    ]
