@@ -1,10 +1,11 @@
 {
     "version": "1.0.0",
-    "summary": "elm-websocket-framework eases the creation of server-based applications.",
+    "summary": "elm-websocket-framework example",
     "repository": "https://github.com/billstclair/elm-websocket-framework.git",
     "license": "MIT",
     "source-directories": [
-        "src"
+        ".",
+        "../src"
     ],
     "exposed-modules": [],
     "dependencies": {

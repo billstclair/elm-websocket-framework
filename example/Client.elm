@@ -1,3 +1,15 @@
+---------------------------------------------------------------------
+--
+-- Client.elm
+-- Simple low-level client for WebSocket server
+-- Copyright (c) 2018 Bill St. Clair <billstclair@gmail.com>
+-- Some rights reserved.
+-- Distributed under the MIT License
+-- See LICENSE.txt
+--
+----------------------------------------------------------------------
+
+
 module Client exposing (..)
 
 import Html as H exposing (Html)

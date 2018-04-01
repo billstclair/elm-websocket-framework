@@ -3,7 +3,7 @@
 -- ServerInterface.elm
 -- WebSocketFramework server implementation.
 -- Usable locally on the client, or via WebSocket on a server.
--- Copyright (c) 2017 Bill St. Clair <billstclair@gmail.com>
+-- Copyright (c) 2018 Bill St. Clair <billstclair@gmail.com>
 -- Some rights reserved.
 -- Distributed under the MIT License
 -- See LICENSE.txt
@@ -108,10 +108,15 @@ proxySender processor (ServerInterface interface) message =
         state =
             Maybe.withDefault emptyServerState interface.state
 
-        ( s2, msgs ) =
+        ( s2, return ) =
             processor state message
     in
-    proxyCmd (ServerInterface { interface | state = Just s2 }) msgs
+    case return of
+        Nothing ->
+            Cmd.none
+
+        Just m ->
+            proxyCmd (ServerInterface { interface | state = Just s2 }) m
 
 
 sender : MessageEncoder message -> ServerInterface gamestate player message msg -> message -> Cmd msg
