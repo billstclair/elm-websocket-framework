@@ -8,7 +8,7 @@ The server side depends on [RGBboy/websocket-server](http://package.elm-lang.org
 
 For single-player use, and development, you can wrap your server-side code for client use, in `elm-reactor` if you want, then switch easily to using a real remote server.
 
-I have used this basic technology for both my [Spokes](https://gibgoygames.com/spokes/) and [Archmage](https://gibgoygames.com/archmage/) games. I made the Archmage version by copying and modifying the Spokes version. Now that I want a server for [JSMaze](JSMaze), it's time to wrap it as a package, embodying my experience in a form everyone can use.
+I have used this basic technology for both my [Spokes](https://gibgoygames.com/spokes/) and [Archmage](https://gibgoygames.com/archmage/) games. I made the Archmage version by copying and modifying the Spokes version. Now that I want a server for [JSMaze](http://jsmaze.com), it's time to wrap it as a package, embodying my experience in a form everyone can use.
 
 Happy Hacking!
 
