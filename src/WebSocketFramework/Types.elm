@@ -27,13 +27,16 @@ module WebSocketFramework.Types
         , ServerMessageProcessor
         , ServerState
         , emptyPublicGames
+        , printifyString
         )
 
 {-| Types used by the rest of the WebSocketFramework modules.
 -}
 
+import Char
 import Dict exposing (Dict)
 import Json.Encode exposing (Value)
+import String.Extra as SE
 
 
 type alias Plist =
@@ -122,3 +125,18 @@ type ServerInterface gamestate player message msg
         , state : Maybe (ServerState gamestate player)
         , sender : ServerInterface gamestate player message msg -> message -> Cmd msg
         }
+
+
+stringFromCode : Int -> String
+stringFromCode code =
+    String.fromList [ Char.fromCode code ]
+
+
+closingQuote : String
+closingQuote =
+    stringFromCode 0x201D
+
+
+printifyString : String -> String
+printifyString string =
+    SE.replace "\"" closingQuote string

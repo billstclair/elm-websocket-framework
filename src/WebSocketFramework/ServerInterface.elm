@@ -45,6 +45,7 @@ import WebSocketFramework.Types as Types
         , ServerMessageProcessor
         , ServerState
         , emptyPublicGames
+        , printifyString
         )
 
 
@@ -85,8 +86,11 @@ fullMessageProcessor encodeDecode messageProcessor state message =
                         Just <| wrapper msg
 
         req =
+            encodeMessage encodeDecode.encoder message
+
+        dbg =
             log "fullMessageProcesor, req" <|
-                encodeMessage encodeDecode.encoder message
+                printifyString req
     in
     case decodeMessage encodeDecode.decoder req of
         Err msg ->
@@ -105,10 +109,11 @@ fullMessageProcessor encodeDecode messageProcessor state message =
                         Just r ->
                             let
                                 rsp =
+                                    encodeMessage encodeDecode.encoder r
+
+                                dbg2 =
                                     log "  rsp" <|
-                                        encodeMessage
-                                            encodeDecode.encoder
-                                            r
+                                        printifyString rsp
                             in
                             case decodeMessage encodeDecode.decoder rsp of
                                 Err msg ->
