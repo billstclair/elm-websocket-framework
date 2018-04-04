@@ -17,6 +17,7 @@ module WebSocketFramework.ServerInterface
         , dummyGameid
         , emptyServerState
         , errorRsp
+        , fullMessageProcessor
         , getServer
         , makeProxyServer
         , makeServer
@@ -29,10 +30,11 @@ import Dict exposing (Dict)
 import List.Extra as LE
 import Task
 import WebSocket
-import WebSocketFramework.EncodeDecode exposing (encodeMessage)
+import WebSocketFramework.EncodeDecode exposing (decodeMessage, encodeMessage)
 import WebSocketFramework.Types as Types
     exposing
-        ( ErrorRsp
+        ( EncodeDecode
+        , ErrorRsp
         , MessageEncoder
         , ModeChecker
         , PlayerInfo
@@ -68,6 +70,54 @@ makeProxyServer messageProcessor wrapper =
         , state = Nothing
         , sender = proxySender messageProcessor
         }
+
+
+fullMessageProcessor : EncodeDecode message -> ServerMessageProcessor gamestate player message -> ServerMessageProcessor gamestate player message
+fullMessageProcessor encodeDecode messageProcessor state message =
+    let
+        err =
+            \msg ->
+                case encodeDecode.errorWrapper of
+                    Nothing ->
+                        Nothing
+
+                    Just wrapper ->
+                        Just <| wrapper msg
+
+        req =
+            log "fullMessageProcesor, req" <|
+                encodeMessage encodeDecode.encoder message
+    in
+    case decodeMessage encodeDecode.decoder req of
+        Err msg ->
+            ( state, err msg )
+
+        Ok message2 ->
+            let
+                ( state2, rspmsg ) =
+                    messageProcessor state message2
+
+                message3 =
+                    case rspmsg of
+                        Nothing ->
+                            Nothing
+
+                        Just r ->
+                            let
+                                rsp =
+                                    log "  rsp" <|
+                                        encodeMessage
+                                            encodeDecode.encoder
+                                            r
+                            in
+                            case decodeMessage encodeDecode.decoder rsp of
+                                Err msg ->
+                                    err msg
+
+                                Ok m ->
+                                    Just m
+            in
+            ( state2, message3 )
 
 
 makeServer : MessageEncoder message -> String -> msg -> ServerInterface gamestate player message msg

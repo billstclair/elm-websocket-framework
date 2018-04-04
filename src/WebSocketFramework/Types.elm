@@ -12,9 +12,10 @@
 
 module WebSocketFramework.Types
     exposing
-        ( ErrorRsp
+        ( EncodeDecode
+        , ErrorRsp
+        , MessageDecoder
         , MessageEncoder
-        , MessageParser
         , ModeChecker
         , PlayerInfo
         , Plist
@@ -57,12 +58,19 @@ type ReqRsp
     | Rsp String
 
 
-type alias MessageParser message =
-    ReqRsp -> Plist -> Result String message
+type alias MessageDecoder message =
+    ( ReqRsp, Plist ) -> Result String message
 
 
 type alias MessageEncoder message =
     message -> ( ReqRsp, Plist )
+
+
+type alias EncodeDecode message =
+    { encoder : MessageEncoder message
+    , decoder : MessageDecoder message
+    , errorWrapper : Maybe (String -> message)
+    }
 
 
 type alias ModeChecker gamestate =

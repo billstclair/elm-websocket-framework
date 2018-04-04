@@ -12,7 +12,15 @@
 
 module Example exposing (..)
 
-import ExampleServer exposing (GameState, Message(..), Player, messageProcessor)
+import ExampleServer
+    exposing
+        ( GameState
+        , Message(..)
+        , Player
+        , messageDecoder
+        , messageEncoder
+        , messageProcessor
+        )
 import Html
     exposing
         ( Attribute
@@ -30,11 +38,17 @@ import Html
         )
 import Html.Attributes exposing (href, style, value)
 import Html.Events exposing (onClick, onInput)
-import WebSocketFramework.ServerInterface as ServerInterface exposing (makeProxyServer, send)
+import WebSocketFramework.ServerInterface as ServerInterface
+    exposing
+        ( fullMessageProcessor
+        , makeProxyServer
+        , send
+        )
 import WebSocketFramework.Types
     exposing
-        ( MessageEncoder
-        , MessageParser
+        ( EncodeDecode
+        , MessageDecoder
+        , MessageEncoder
         , ReqRsp(..)
         , ServerInterface(..)
         , ServerMessageProcessor
@@ -61,9 +75,22 @@ main =
         }
 
 
+encodeDecode : EncodeDecode Message
+encodeDecode =
+    { encoder = messageEncoder
+    , decoder = messageDecoder
+    , errorWrapper = Nothing
+    }
+
+
+fullProcessor : ServerMessageProcessor GameState Player Message
+fullProcessor =
+    fullMessageProcessor encodeDecode messageProcessor
+
+
 init : ( Model, Cmd msg )
 init =
-    { interface = makeProxyServer messageProcessor IncomingMessage
+    { interface = makeProxyServer fullProcessor IncomingMessage
     , gameid = ""
     , playerid = ""
     , name = "Bob"

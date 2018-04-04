@@ -15,11 +15,12 @@ module ExampleServer
         ( GameState
         , Message(..)
         , Player
+        , messageDecoder
         , messageEncoder
-        , messageParser
         , messageProcessor
         )
 
+import Debug exposing (log)
 import Json.Decode as JD exposing (Decoder)
 import Json.Encode as JE exposing (Value)
 import WebSocketFramework exposing (decodePlist, unknownMessage)
@@ -102,8 +103,8 @@ messageEncoder message =
             )
 
 
-messageParser : ReqRsp -> Plist -> Result String Message
-messageParser reqrsp plist =
+messageDecoder : ( ReqRsp, Plist ) -> Result String Message
+messageDecoder ( reqrsp, plist ) =
     case reqrsp of
         Req msg ->
             case msg of

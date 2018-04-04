@@ -30,8 +30,8 @@ import Json.Decode as JD exposing (Decoder)
 import Json.Encode as JE exposing (Value)
 import WebSocketFramework.Types as Types
     exposing
-        ( MessageEncoder
-        , MessageParser
+        ( MessageDecoder
+        , MessageEncoder
         , Plist
         , RawMessage
         , ReqRsp(..)
@@ -105,19 +105,19 @@ decodeReqRsp reqrsp message =
             Err <| "Expecting 'req' or 'rsp', got: '" ++ reqrsp ++ "'"
 
 
-decodeMessage : MessageParser message -> String -> Result String message
-decodeMessage parser json =
-    JD.decodeString (messageDecoder parser) json
+decodeMessage : MessageDecoder message -> String -> Result String message
+decodeMessage decoder json =
+    JD.decodeString (messageDecoder decoder) json
 
 
-messageDecoder : MessageParser message -> Decoder message
-messageDecoder parser =
+messageDecoder : MessageDecoder message -> Decoder message
+messageDecoder decoder =
     rawMessageDecoder
         |> JD.andThen
             (\m ->
                 case decodeReqRsp m.reqrsp m.msg of
                     Ok reqrsp ->
-                        case parser reqrsp m.plist of
+                        case decoder ( reqrsp, m.plist ) of
                             Ok message ->
                                 JD.succeed message
 
