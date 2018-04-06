@@ -1,7 +1,7 @@
 ---------------------------------------------------------------------
 --
--- Example.elm
--- Top-level example UI for WebSocket client/server framework.
+-- SharedUI.elm
+-- Top-level shared example UI for WebSocket client/server framework.
 -- Copyright (c) 2018 Bill St. Clair <billstclair@gmail.com>
 -- Some rights reserved.
 -- Distributed under the MIT License
@@ -10,9 +10,9 @@
 ----------------------------------------------------------------------
 
 
-module Example exposing (..)
+module SharedUI exposing (Model, Msg(..), fullProcessor, init, update, view)
 
-import ExampleServer
+import ExampleInterface
     exposing
         ( GameState
         , Message(..)
@@ -66,15 +66,6 @@ type alias Model =
     }
 
 
-main =
-    Html.program
-        { init = init
-        , view = view
-        , update = update
-        , subscriptions = subscriptions
-        }
-
-
 encodeDecode : EncodeDecode Message
 encodeDecode =
     { encoder = messageEncoder
@@ -88,9 +79,9 @@ fullProcessor =
     fullMessageProcessor encodeDecode messageProcessor
 
 
-init : ( Model, Cmd msg )
-init =
-    { interface = makeProxyServer fullProcessor IncomingMessage
+init : ServerInterface GameState Player Message Msg -> ( Model, Cmd msg )
+init interface =
+    { interface = interface
     , gameid = ""
     , playerid = ""
     , name = "Bob"

@@ -1,7 +1,7 @@
 ---------------------------------------------------------------------
 --
--- ExampleServer.elm
--- Server code for WebSocketFramework example.
+-- ExampleInterface.elm
+-- Processor and encoders/decoders for WebSocketFramework example
 -- Copyright (c) 2018 Bill St. Clair <billstclair@gmail.com>
 -- Some rights reserved.
 -- Distributed under the MIT License
@@ -10,7 +10,7 @@
 ----------------------------------------------------------------------
 
 
-module ExampleServer
+module ExampleInterface
     exposing
         ( GameState
         , Message(..)
