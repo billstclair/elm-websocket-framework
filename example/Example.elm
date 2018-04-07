@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------
 --
--- SharedUI.elm
+-- Example.elm
 -- Top-level shared example UI for WebSocket client/server framework.
 -- Copyright (c) 2018 Bill St. Clair <billstclair@gmail.com>
 -- Some rights reserved.
@@ -10,7 +10,7 @@
 ----------------------------------------------------------------------
 
 
-module SharedUI exposing (Model, Msg(..), fullProcessor, init, update, view)
+module Example exposing (..)
 
 import ExampleInterface
     exposing
@@ -38,6 +38,8 @@ import Html
         )
 import Html.Attributes exposing (href, style, value)
 import Html.Events exposing (onClick, onInput)
+import Json.Encode exposing (Value)
+import WebSocketFramework.EncodeDecode exposing (decodeMessage)
 import WebSocketFramework.ServerInterface as ServerInterface
     exposing
         ( fullMessageProcessor
@@ -53,6 +55,15 @@ import WebSocketFramework.Types
         , ServerInterface(..)
         , ServerMessageProcessor
         )
+
+
+main =
+    Html.program
+        { init = init
+        , view = view
+        , update = update
+        , subscriptions = \_ -> Sub.none
+        }
 
 
 type alias Model =
@@ -79,9 +90,9 @@ fullProcessor =
     fullMessageProcessor encodeDecode messageProcessor
 
 
-init : ServerInterface GameState Player Message Msg -> ( Model, Cmd msg )
-init interface =
-    { interface = interface
+init : ( Model, Cmd msg )
+init =
+    { interface = makeProxyServer fullProcessor IncomingMessage
     , gameid = ""
     , playerid = ""
     , name = "Bob"
@@ -94,6 +105,7 @@ init interface =
 
 type Msg
     = IncomingMessage (ServerInterface GameState Player Message Msg) Message
+    | WebSocketMessage String
     | SetName String
     | SetX String
     | SetY String
@@ -107,10 +119,23 @@ update msg model =
         IncomingMessage interface message ->
             case message of
                 ResultMessage result ->
-                    { model | result = result } ! []
+                    { model
+                        | result = result
+                        , interface = interface
+                    }
+                        ! []
 
                 _ ->
                     model ! []
+
+        WebSocketMessage string ->
+            case decodeMessage messageDecoder string of
+                Err _ ->
+                    -- Should save error and display it in view
+                    model ! []
+
+                Ok message ->
+                    update (IncomingMessage model.interface message) model
 
         SetName name ->
             { model | name = name } ! []
