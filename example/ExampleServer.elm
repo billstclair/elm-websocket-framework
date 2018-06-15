@@ -9,7 +9,6 @@ import ExampleInterface
         , messageEncoder
         , messageProcessor
         )
-import Platform exposing (Program)
 import WebSocketFramework.Server
     exposing
         ( Msg
@@ -32,6 +31,11 @@ type alias ServerModel =
     ()
 
 
+serverModel : ServerModel
+serverModel =
+    ()
+
+
 encodeDecode : EncodeDecode Message
 encodeDecode =
     { encoder = messageEncoder
@@ -40,12 +44,12 @@ encodeDecode =
     }
 
 
-messageSender : ServerMessageSender (Maybe ServerModel) Message GameState Player
+messageSender : ServerMessageSender ServerModel Message GameState Player
 messageSender model socket state request response =
     ( model, sendToOne messageEncoder response outputPort socket )
 
 
-userFunctions : UserFunctions (Maybe ServerModel) Message GameState Player
+userFunctions : UserFunctions ServerModel Message GameState Player
 userFunctions =
     { encodeDecode = encodeDecode
     , messageProcessor = messageProcessor
@@ -57,7 +61,7 @@ userFunctions =
 
 
 main =
-    program Nothing userFunctions Nothing
+    program serverModel userFunctions Nothing
 
 
 
