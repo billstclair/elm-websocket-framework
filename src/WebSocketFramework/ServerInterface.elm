@@ -14,6 +14,9 @@
 module WebSocketFramework.ServerInterface
     exposing
         ( appendGameList
+        , checkGameid
+        , checkOnlyGameid
+        , checkPlayerid
         , dummyGameid
         , emptyServerState
         , errorRsp
@@ -35,8 +38,10 @@ import WebSocketFramework.Types as Types
     exposing
         ( EncodeDecode
         , ErrorRsp
+        , GameId
         , MessageEncoder
         , ModeChecker
+        , PlayerId
         , PlayerInfo
         , PublicGame
         , PublicGames
@@ -44,6 +49,7 @@ import WebSocketFramework.Types as Types
         , ServerInterface(..)
         , ServerMessageProcessor
         , ServerState
+        , ServerUrl
         , emptyPublicGames
         , printifyString
         )
@@ -58,7 +64,7 @@ emptyServerState =
     }
 
 
-dummyGameid : String
+dummyGameid : GameId
 dummyGameid =
     "<gameid>"
 
@@ -125,7 +131,7 @@ fullMessageProcessor encodeDecode messageProcessor state message =
             ( state2, message3 )
 
 
-makeServer : MessageEncoder message -> String -> msg -> ServerInterface gamestate player message msg
+makeServer : MessageEncoder message -> ServerUrl -> msg -> ServerInterface gamestate player message msg
 makeServer encoder server msg =
     ServerInterface
         { server = server
@@ -135,7 +141,7 @@ makeServer encoder server msg =
         }
 
 
-getServer : ServerInterface gamestate player message msg -> String
+getServer : ServerInterface gamestate player message msg -> ServerUrl
 getServer (ServerInterface interface) =
     interface.server
 
@@ -186,7 +192,7 @@ errorRsp message text =
     }
 
 
-checkOnlyGameid : ServerState gamestate player -> message -> String -> Result (ErrorRsp message) gamestate
+checkOnlyGameid : ServerState gamestate player -> message -> GameId -> Result (ErrorRsp message) gamestate
 checkOnlyGameid state message gameid =
     case Dict.get gameid state.gameDict of
         Just gameState ->
@@ -196,7 +202,7 @@ checkOnlyGameid state message gameid =
             Err <| errorRsp message "Unknown gameid"
 
 
-checkPlayerid : ServerState gamestate player -> message -> String -> Result (ErrorRsp message) (PlayerInfo player)
+checkPlayerid : ServerState gamestate player -> message -> PlayerId -> Result (ErrorRsp message) (PlayerInfo player)
 checkPlayerid state message playerid =
     case Dict.get playerid state.playerDict of
         Nothing ->
@@ -206,7 +212,7 @@ checkPlayerid state message playerid =
             Ok info
 
 
-checkGameid : ModeChecker gamestate -> ServerState gamestate player -> message -> String -> Result (ErrorRsp message) gamestate
+checkGameid : ModeChecker gamestate -> ServerState gamestate player -> message -> GameId -> Result (ErrorRsp message) gamestate
 checkGameid checker state message gameid =
     case checkOnlyGameid state message gameid of
         Ok gamestate ->
@@ -226,6 +232,6 @@ appendGameList game games =
     List.append games [ game ]
 
 
-removeGameFromList : String -> PublicGames -> PublicGames
+removeGameFromList : GameId -> PublicGames -> PublicGames
 removeGameFromList gameid games =
     List.filter (\game -> game.gameid /= gameid) games

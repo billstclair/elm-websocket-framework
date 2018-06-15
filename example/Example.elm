@@ -39,6 +39,7 @@ import Html
 import Html.Attributes exposing (href, style, value)
 import Html.Events exposing (onClick, onInput)
 import Json.Encode exposing (Value)
+import WebSocket
 import WebSocketFramework.EncodeDecode exposing (decodeMessage)
 import WebSocketFramework.ServerInterface as ServerInterface
     exposing
@@ -68,6 +69,7 @@ main =
 
 type alias Model =
     { interface : ServerInterface GameState Player Message Msg
+    , serverUrl : Maybe String
     , gameid : String
     , playerid : String
     , name : String
@@ -93,6 +95,7 @@ fullProcessor =
 init : ( Model, Cmd msg )
 init =
     { interface = makeProxyServer fullProcessor IncomingMessage
+    , serverUrl = Nothing
     , gameid = ""
     , playerid = ""
     , name = "Bob"
@@ -215,4 +218,9 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    case model.serverUrl of
+        Nothing ->
+            Sub.none
+
+        Just url ->
+            WebSocket.listen url WebSocketMessage

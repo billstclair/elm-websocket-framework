@@ -1,7 +1,7 @@
 ---------------------------------------------------------------------
 --
 -- EncodeDecode.elm
--- JSON encoder and decoder for Archmage server wire protocol.
+-- JSON encoder and decoder for WebSocketFramework
 -- Copyright (c) 2018 Bill St. Clair <billstclair@gmail.com>
 -- Some rights reserved.
 -- Distributed under the MIT License

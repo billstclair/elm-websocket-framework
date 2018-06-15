@@ -14,9 +14,12 @@ module WebSocketFramework.Types
     exposing
         ( EncodeDecode
         , ErrorRsp
+        , GameId
         , MessageDecoder
         , MessageEncoder
+        , MessageToGameid
         , ModeChecker
+        , PlayerId
         , PlayerInfo
         , Plist
         , PublicGame
@@ -26,7 +29,9 @@ module WebSocketFramework.Types
         , ServerInterface(..)
         , ServerMessageProcessor
         , ServerState
+        , ServerUrl
         , emptyPublicGames
+        , emptyServerState
         , printifyString
         )
 
@@ -37,6 +42,18 @@ import Char
 import Dict exposing (Dict)
 import Json.Encode exposing (Value)
 import String.Extra as SE
+
+
+type alias ServerUrl =
+    String
+
+
+type alias GameId =
+    String
+
+
+type alias PlayerId =
+    String
 
 
 type alias Plist =
@@ -84,14 +101,18 @@ type alias ServerMessageProcessor gamestate player message =
     ServerState gamestate player -> message -> ( ServerState gamestate player, Maybe message )
 
 
+type alias MessageToGameid message =
+    message -> Maybe GameId
+
+
 type alias PlayerInfo player =
-    { gameid : String
+    { gameid : GameId
     , player : player
     }
 
 
 type alias PublicGame =
-    { gameid : String
+    { gameid : GameId
     , playerName : String
     }
 
@@ -111,16 +132,25 @@ emptyPublicGames =
 -- They're stored in a Dict in the Server model.
 -}
 type alias ServerState gamestate player =
-    { gameDict : Dict String gamestate --gameid
-    , playerDict : Dict String (PlayerInfo player) --playerid
+    { gameDict : Dict GameId gamestate
+    , playerDict : Dict PlayerId (PlayerInfo player)
     , publicGames : PublicGames
     , state : Maybe gamestate --used by servers with no concept of game or player
     }
 
 
+emptyServerState : Maybe gamestate -> ServerState gamestate player
+emptyServerState gamestate =
+    { gameDict = Dict.empty
+    , playerDict = Dict.empty
+    , publicGames = emptyPublicGames
+    , state = gamestate
+    }
+
+
 type ServerInterface gamestate player message msg
     = ServerInterface
-        { server : String
+        { server : ServerUrl
         , wrapper : ServerInterface gamestate player message msg -> message -> msg
         , state : Maybe (ServerState gamestate player)
         , sender : ServerInterface gamestate player message msg -> message -> Cmd msg
