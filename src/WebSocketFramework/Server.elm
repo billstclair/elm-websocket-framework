@@ -1,4 +1,16 @@
-port module WebSocketFramework.Server exposing (..)
+module WebSocketFramework.Server
+    exposing
+        ( Model
+        , Msg
+        , ServerMessageSender
+        , UserFunctions
+        , WrappedModel(WrappedModel)
+        , newGameid
+        , newPlayerid
+        , program
+        , sendToMany
+        , sendToOne
+        )
 
 import Char
 import Debug exposing (log)
@@ -20,9 +32,11 @@ import WebSocketFramework.Types
     exposing
         ( EncodeDecode
         , GameId
+        , InputPort
         , MessageDecoder
         , MessageEncoder
         , MessageToGameid
+        , OutputPort
         , PlayerId
         , PublicGames
         , ServerMessageProcessor
@@ -34,22 +48,12 @@ import WebSocketServer as WSS exposing (Socket)
 
 
 program : servermodel -> UserFunctions servermodel message gamestate player -> Maybe gamestate -> Program Never (Model servermodel message gamestate player) Msg
-program servermodel userfunctions gamestate =
+program servermodel userFunctions gamestate =
     Platform.program
-        { init = init servermodel userfunctions gamestate
+        { init = init servermodel userFunctions gamestate
         , update = update
-        , subscriptions = subscriptions
+        , subscriptions = subscriptions userFunctions.inputPort
         }
-
-
-
--- PORTS
-
-
-port inputPort : (JD.Value -> msg) -> Sub msg
-
-
-port outputPort : JE.Value -> Cmd msg
 
 
 
@@ -68,12 +72,23 @@ type alias ServerMessageSender servermodel message gamestate player =
     WrappedModel servermodel message gamestate player -> Socket -> ServerState gamestate player -> message -> message -> ( WrappedModel servermodel message gamestate player, Cmd Msg )
 
 
-type alias Model servermodel message gamestate player =
-    { servermodel : servermodel
-    , encodeDecode : EncodeDecode message
+type WrappedModel servermodel message gamestate player
+    = WrappedModel (Model servermodel message gamestate player)
+
+
+type alias UserFunctions servermodel message gamestate player =
+    { encodeDecode : EncodeDecode message
     , messageProcessor : ServerMessageProcessor gamestate player message
     , messageSender : ServerMessageSender servermodel message gamestate player
     , messageToGameid : Maybe (MessageToGameid message)
+    , inputPort : InputPort Msg
+    , outputPort : OutputPort Msg
+    }
+
+
+type alias Model servermodel message gamestate player =
+    { servermodel : servermodel
+    , userFunctions : UserFunctions servermodel message gamestate player
     , state : ServerState gamestate player
     , gameidDict : Dict Socket GameId
     , playeridDict : Dict GameId (List PlayerId)
@@ -85,25 +100,10 @@ type alias Model servermodel message gamestate player =
     }
 
 
-type WrappedModel servermodel message gamestate player
-    = WrappedModel (Model servermodel message gamestate player)
-
-
-type alias UserFunctions servermodel message gamestate player =
-    { encodeDecode : EncodeDecode message
-    , messageProcessor : ServerMessageProcessor gamestate player message
-    , messageSender : ServerMessageSender servermodel message gamestate player
-    , messageToGameid : Maybe (MessageToGameid message)
-    }
-
-
 init : servermodel -> UserFunctions servermodel message gamestate player -> Maybe gamestate -> ( Model servermodel message gamestate player, Cmd Msg )
 init servermodel userFunctions gamestate =
     ( { servermodel = servermodel
-      , encodeDecode = userFunctions.encodeDecode
-      , messageProcessor = userFunctions.messageProcessor
-      , messageSender = userFunctions.messageSender
-      , messageToGameid = userFunctions.messageToGameid
+      , userFunctions = userFunctions
       , state = emptyServerState gamestate
       , gameidDict = Dict.empty
       , playeridDict = Dict.empty
@@ -313,15 +313,15 @@ disconnection model socket =
                     )
 
 
-sendToOne : MessageEncoder message -> message -> Socket -> Cmd Msg
-sendToOne encoder message socket =
+sendToOne : MessageEncoder message -> message -> OutputPort Msg -> Socket -> Cmd Msg
+sendToOne encoder message outputPort socket =
     WSS.sendToOne outputPort
         (log "send" <| encodeMessage encoder message)
         (log "  " socket)
 
 
-sendToMany : MessageEncoder message -> message -> List Socket -> Cmd Msg
-sendToMany encoder message sockets =
+sendToMany : MessageEncoder message -> message -> OutputPort Msg -> List Socket -> Cmd Msg
+sendToMany encoder message outputPort sockets =
     WSS.sendToMany outputPort
         (log "send" (encodeMessage encoder message))
         (log "  " sockets)
@@ -330,9 +330,13 @@ sendToMany encoder message sockets =
 
 socketMessage : Model servermodel message gamestate player -> Socket -> String -> ( Model servermodel message gamestate player, Cmd Msg )
 socketMessage model socket request =
-    case decodeMessage model.encodeDecode.decoder request of
+    let
+        userFunctions =
+            model.userFunctions
+    in
+    case decodeMessage userFunctions.encodeDecode.decoder request of
         Err msg ->
-            case model.encodeDecode.errorWrapper of
+            case userFunctions.encodeDecode.errorWrapper of
                 Nothing ->
                     ( model, Cmd.none )
 
@@ -342,13 +346,17 @@ socketMessage model socket request =
                             wrapper <| "Can't parse request: " ++ request
                     in
                     ( model
-                    , sendToOne model.encodeDecode.encoder response socket
+                    , sendToOne
+                        userFunctions.encodeDecode.encoder
+                        response
+                        userFunctions.outputPort
+                        socket
                     )
 
         Ok message ->
             let
                 ( state, rsp ) =
-                    model.messageProcessor model.state message
+                    userFunctions.messageProcessor model.state message
             in
             case rsp of
                 Nothing ->
@@ -359,7 +367,7 @@ socketMessage model socket request =
                 Just response ->
                     let
                         mod =
-                            case model.messageToGameid of
+                            case userFunctions.messageToGameid of
                                 Nothing ->
                                     model
 
@@ -372,7 +380,7 @@ socketMessage model socket request =
                                             reprieve gameid model
 
                         ( WrappedModel mod2, cmd ) =
-                            mod.messageSender
+                            userFunctions.messageSender
                                 (WrappedModel mod)
                                 socket
                                 state
@@ -454,8 +462,8 @@ decodeMsg value =
         |> Result.withDefault Noop
 
 
-subscriptions : Model servermodel message gamestate player -> Sub Msg
-subscriptions model =
+subscriptions : InputPort Msg -> Model servermodel message gamestate player -> Sub Msg
+subscriptions inputPort model =
     Sub.batch
         [ inputPort decodeMsg
         , Time.every Time.second Tick

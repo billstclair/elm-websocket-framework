@@ -15,10 +15,12 @@ module WebSocketFramework.Types
         ( EncodeDecode
         , ErrorRsp
         , GameId
+        , InputPort
         , MessageDecoder
         , MessageEncoder
         , MessageToGameid
         , ModeChecker
+        , OutputPort
         , PlayerId
         , PlayerInfo
         , Plist
@@ -40,7 +42,8 @@ module WebSocketFramework.Types
 
 import Char
 import Dict exposing (Dict)
-import Json.Encode exposing (Value)
+import Json.Decode as JD
+import Json.Encode as JE exposing (Value)
 import String.Extra as SE
 
 
@@ -155,6 +158,14 @@ type ServerInterface gamestate player message msg
         , state : Maybe (ServerState gamestate player)
         , sender : ServerInterface gamestate player message msg -> message -> Cmd msg
         }
+
+
+type alias InputPort msg =
+    (Value -> msg) -> Sub msg
+
+
+type alias OutputPort msg =
+    Value -> Cmd msg
 
 
 stringFromCode : Int -> String
