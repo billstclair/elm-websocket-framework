@@ -12,6 +12,7 @@
 
 module Example exposing (..)
 
+import Debug exposing (log)
 import ExampleInterface
     exposing
         ( GameState
@@ -31,21 +32,22 @@ import Html
         , h2
         , input
         , p
+        , span
         , table
         , td
         , text
         , tr
         )
-import Html.Attributes exposing (href, style, value)
+import Html.Attributes exposing (disabled, href, size, style, value)
 import Html.Events exposing (onClick, onInput)
 import Json.Encode exposing (Value)
 import WebSocket
-import WebSocketFramework.EncodeDecode exposing (decodeMessage)
+import WebSocketFramework.EncodeDecode exposing (decodeMessage, encodeMessage)
 import WebSocketFramework.ServerInterface as ServerInterface
     exposing
         ( fullMessageProcessor
         , makeProxyServer
-        , send
+        , makeServer
         )
 import WebSocketFramework.Types
     exposing
@@ -63,12 +65,13 @@ main =
         { init = init
         , view = view
         , update = update
-        , subscriptions = \_ -> Sub.none
+        , subscriptions = subscriptions
         }
 
 
 type alias Model =
     { interface : ServerInterface GameState Player Message Msg
+    , urlString : String
     , serverUrl : Maybe String
     , gameid : String
     , playerid : String
@@ -76,6 +79,7 @@ type alias Model =
     , x : Int
     , y : Int
     , result : String
+    , messages : List String
     }
 
 
@@ -94,7 +98,8 @@ fullProcessor =
 
 init : ( Model, Cmd msg )
 init =
-    { interface = makeProxyServer fullProcessor IncomingMessage
+    { interface = makeProxyServer fullProcessor (IncomingMessage True)
+    , urlString = "ws://localhost:8081/"
     , serverUrl = Nothing
     , gameid = ""
     , playerid = ""
@@ -102,29 +107,42 @@ init =
     , x = 1
     , y = 2
     , result = ""
+    , messages = []
     }
         ! []
 
 
 type Msg
-    = IncomingMessage (ServerInterface GameState Player Message Msg) Message
+    = IncomingMessage Bool (ServerInterface GameState Player Message Msg) Message
     | WebSocketMessage String
     | SetName String
     | SetX String
     | SetY String
+    | SetUrl String
     | Add
     | Multiply
+    | ToggleConnection
+    | Noop
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        IncomingMessage interface message ->
+        IncomingMessage addToMessages interface message ->
             case message of
                 ResultMessage result ->
                     { model
                         | result = result
                         , interface = interface
+                        , messages =
+                            if addToMessages then
+                                let
+                                    text =
+                                        encodeMessage messageEncoder message
+                                in
+                                ("recv: " ++ text) :: model.messages
+                            else
+                                model.messages
                     }
                         ! []
 
@@ -132,13 +150,17 @@ update msg model =
                     model ! []
 
         WebSocketMessage string ->
+            let
+                model2 =
+                    { model | messages = ("sock: " ++ string) :: model.messages }
+            in
             case decodeMessage messageDecoder string of
-                Err _ ->
-                    -- Should save error and display it in view
-                    model ! []
+                Err msg ->
+                    { model2 | messages = ("err:  " ++ string) :: model2.messages }
+                        ! []
 
                 Ok message ->
-                    update (IncomingMessage model.interface message) model
+                    update (IncomingMessage False model2.interface message) model2
 
         SetName name ->
             { model | name = name } ! []
@@ -159,11 +181,48 @@ update msg model =
                 Err _ ->
                     model ! []
 
+        SetUrl str ->
+            { model | urlString = str } ! []
+
         Add ->
-            model ! [ send model.interface (AddMessage model.x model.y) ]
+            send model (AddMessage model.x model.y)
 
         Multiply ->
-            model ! [ send model.interface (MultiplyMessage model.x model.y) ]
+            send model (MultiplyMessage model.x model.y)
+
+        ToggleConnection ->
+            let
+                disconnect =
+                    model.serverUrl /= Nothing
+            in
+            { model
+                | serverUrl =
+                    if disconnect then
+                        Nothing
+                    else
+                        Just model.urlString
+                , interface =
+                    if disconnect then
+                        makeProxyServer fullProcessor (IncomingMessage True)
+                    else
+                        makeServer messageEncoder model.urlString Noop
+            }
+                ! []
+
+        Noop ->
+            model ! []
+
+
+send : Model -> Message -> ( Model, Cmd Msg )
+send model message =
+    let
+        text =
+            encodeMessage messageEncoder message
+
+        model2 =
+            { model | messages = ("send: " ++ text) :: model.messages }
+    in
+    model2 ! [ ServerInterface.send model.interface message ]
 
 
 br : Html msg
@@ -173,6 +232,10 @@ br =
 
 view : Model -> Html Msg
 view model =
+    let
+        connected =
+            model.serverUrl /= Nothing
+    in
     div [ style [ ( "margin-left", "2em" ) ] ]
         [ h2 [] [ text "WebSocketFramework Example" ]
         , p []
@@ -213,7 +276,32 @@ view model =
                     ]
                 ]
             ]
+        , p []
+            [ text "URL: "
+            , input
+                [ onInput SetUrl
+                , value model.urlString
+                , disabled connected
+                , size 30
+                ]
+                []
+            , text " "
+            , button [ onClick ToggleConnection ]
+                [ text <|
+                    if connected then
+                        "Disconnect"
+                    else
+                        "Connect"
+                ]
+            ]
+        , p []
+            (List.map textAndBr model.messages)
         ]
+
+
+textAndBr : String -> Html Msg
+textAndBr string =
+    span [] [ text string, br ]
 
 
 subscriptions : Model -> Sub Msg

@@ -1,4 +1,4 @@
-This directory is for uploading to the web server machine for the server-side of the multi-user Archmage game.
+This directory is for uploading to the web server machine for the server-side of the WebSockerFramework example.
 
 The server runs in `Node.js`.
 
@@ -34,6 +34,18 @@ Then add to either your Apache virtual host configuration or to an `.htaccess` f
     ProxyPass "/my-server"  "ws://localhost:8081/"
     
 `/my-server` has to match the contents of `site/server.txt`, from which the client loads the server default.
+
+If you're running the server on your local machine, you can aim your browser at:
+
+    http://localhost:8081
+    
+to get a very simple test client that sends the strings you type over the wire and prints what it receives back.
+
+If you're using Example.elm in the [example](../) directory, you should connect to the default URL of:
+
+    ws://localhost:8081
+    
+Unless you use PORT as described below to change the port, or are running it on a remove server.
 
 If you want to run your server on a port other than 8081, you can set the `PORT` environment variable:
 
