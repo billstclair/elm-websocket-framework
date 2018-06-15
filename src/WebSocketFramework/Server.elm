@@ -89,60 +89,6 @@ type WrappedModel servermodel message gamestate player
     = WrappedModel (Model servermodel message gamestate player)
 
 
-lowercaseLetter : Generator Char
-lowercaseLetter =
-    Random.map (\n -> Char.fromCode (n + 97)) (Random.int 0 25)
-
-
-gameidLength : Int
-gameidLength =
-    16
-
-
-
---(log (expt 26 16) 2) -> 75
-
-
-gameidGenerator : Generator GameId
-gameidGenerator =
-    Random.map String.fromList <|
-        Random.list gameidLength lowercaseLetter
-
-
-newGameid : Model servermodel message gamestate player -> ( GameId, Model servermodel message gamestate player )
-newGameid model =
-    let
-        ( res, seed ) =
-            Random.step gameidGenerator model.seed
-
-        mdl2 =
-            { model | seed = seed }
-    in
-    case Dict.get res model.state.gameDict of
-        Nothing ->
-            ( res, mdl2 )
-
-        Just _ ->
-            newGameid mdl2
-
-
-newPlayerid : Model servermodel message gamestate player -> ( PlayerId, Model servermodel message gamestate player )
-newPlayerid model =
-    let
-        ( gameid, mod ) =
-            newGameid model
-
-        playerid =
-            "P" ++ gameid
-    in
-    case Dict.get playerid model.state.playerDict of
-        Nothing ->
-            ( playerid, mod )
-
-        Just _ ->
-            newPlayerid mod
-
-
 type alias UserFunctions servermodel message gamestate player =
     { encodeDecode : EncodeDecode message
     , messageProcessor : ServerMessageProcessor gamestate player message
@@ -436,265 +382,61 @@ socketMessage model socket request =
                     ( mod2, cmd )
 
 
-
-{-
-
-   updatePublicGameId : PublicGames -> GameId -> GameId -> PublicGames
-   updatePublicGameId games gameid gid =
-       let
-           gameList =
-               games
-       in
-       case LE.find (\game -> game.gameid == gameid) gameList of
-           Nothing ->
-               games
-
-           Just game ->
-               { game | gameid = gid }
-                   :: List.filter (\game -> game.gameid /= gameid) gameList
+lowercaseLetter : Generator Char
+lowercaseLetter =
+    Random.map (\n -> Char.fromCode (n + 97)) (Random.int 0 25)
 
 
-   updatePlayerid : GameId -> PlayerId -> Player -> Model -> ( Model, PlayerId )
-   updatePlayerid gameid playerid player model =
-       let
-           ( pid, model2 ) =
-               newPlayerid model
-
-           state =
-               model2.state
-
-           ids =
-               case Dict.get gameid model2.playeridDict of
-                   Nothing ->
-                       [ pid ]
-
-                   Just ids ->
-                       pid :: ids
-
-           playeridDict =
-               Dict.insert gameid ids model2.playeridDict
-
-           info =
-               { gameid = gameid, player = player }
-
-           playerDict =
-               Dict.insert pid info <|
-                   Dict.remove playerid state.playerDict
-       in
-       ( { model2
-           | state = { state | playerDict = playerDict }
-           , playeridDict = playeridDict
-         }
-       , pid
-       )
-
-
-   processResponse : Model -> Socket -> ServerState -> message -> message -> ( Model, Cmd Msg )
-   processResponse model socket state message response =
-       case response of
-           NewRsp { gameid, playerid, name } ->
-               let
-                   ( model2, _ ) =
-                       disconnection model socket
-
-                   ( gid, model3 ) =
-                       newGameid model2
-
-                   state2 =
-                       case Dict.get gameid state.gameDict of
-                           Nothing ->
-                               state
-
-                           --can't happen
-                           Just gs ->
-                               let
-                                   gs2 =
-                                       gs
-
-                                   gameDict =
-                                       Dict.remove gameid state.gameDict
-                               in
-                               { state
-                                   | gameDict = Dict.insert gid gs2 gameDict
-                                   , publicGames =
-                                       updatePublicGameId state.publicGames
-                                           gameid
-                                           gid
-                               }
-
-                   model4 =
-                       { model3
-                           | state = state2
-                           , gameidDict =
-                               Dict.insert socket gid model3.gameidDict
-                           , socketsDict =
-                               Dict.insert gid [ socket ] model3.socketsDict
-                       }
-
-                   ( model5, pid ) =
-                       updatePlayerid gid playerid WhitePlayer model4
-
-                   response =
-                       NewRsp
-                           { gameid = gid
-                           , playerid = pid
-                           , name = name
-                           }
-               in
-               ( model5
-               , sendToOne response socket
-               )
-
-           JoinRsp { playerid, names, gameState } ->
-               case messageGameid message of
-                   Nothing ->
-                       ( model
-                       , sendToOne (errorRsp message "Can't find gameid") socket
-                       )
-
-                   Just gameid ->
-                       let
-                           ( model2, _ ) =
-                               disconnection model socket
-
-                           sockets =
-                               case Dict.get gameid model2.socketsDict of
-                                   Nothing ->
-                                       []
-
-                                   --better not happen
-                                   Just socks ->
-                                       socks
-
-                           newSockets =
-                               socket :: sockets
-
-                           model3 =
-                               { model2
-                                   | state = state
-                                   , gameidDict =
-                                       Dict.insert socket gameid model2.gameidDict
-                                   , socketsDict =
-                                       Dict.insert gameid newSockets model2.socketsDict
-                               }
-
-                           ( model4, pid ) =
-                               updatePlayerid gameid playerid BlackPlayer model3
-
-                           rec =
-                               { playerid = pid
-                               , names = newNames
-                               , gameState = gameState
-                               }
-
-                           rsp =
-                               JoinRsp rec
-
-                           whiteRsp =
-                               JoinRsp { rec | playerid = "" }
-                       in
-                       ( model4
-                       , Cmd.batch
-                           [ sendToOne rsp socket
-                           , case sockets of
-                               [] ->
-                                   Cmd.none
-
-                               s :: _ ->
-                                   sendToOne whiteRsp s
-                           ]
-                       )
-
-           LeaveRsp { gameid } ->
-               -- game is already removed from state.gameDict & state.publicGames
-               -- one playerid is removed from state.playerDict
-               let
-                   sockets =
-                       case Dict.get gameid model.socketsDict of
-                           Nothing ->
-                               []
-
-                           Just socks ->
-                               socks
-
-                   pids =
-                       case Dict.get gameid model.playeridDict of
-                           Nothing ->
-                               []
-
-                           Just ids ->
-                               ids
-
-                   gameidDict =
-                       List.foldr Dict.remove model.gameidDict sockets
-
-                   playerDict =
-                       List.foldr Dict.remove state.playerDict pids
-               in
-               ( { model
-                   | socketsDict = Dict.remove gameid model.socketsDict
-                   , playeridDict = Dict.remove gameid model.playeridDict
-                   , gameidDict = gameidDict
-                   , state = { state | playerDict = playerDict }
-                 }
-               , sendToMany response sockets
-               )
-
-           ErrorRsp _ ->
-               ( model
-               , sendToOne response socket
-               )
-
-           _ ->
-               let
-                   ( gameid, model2 ) =
-                       case Dict.get socket model.gameidDict of
-                           Just gid ->
-                               ( gid, model )
-
-                           Nothing ->
-                               case messageGameid response of
-                                   Nothing ->
-                                       ( "", model )
-
-                                   --I don't think this can happen
-                                   Just gid ->
-                                       let
-                                           socks =
-                                               case Dict.get gid model.socketsDict of
-                                                   Nothing ->
-                                                       [ socket ]
-
-                                                   Just ss ->
-                                                       socket :: ss
-                                       in
-                                       ( gid
-                                       , { model
-                                           | gameidDict =
-                                               Dict.insert socket
-                                                   gid
-                                                   model.gameidDict
-                                           , socketsDict =
-                                               Dict.insert gid
-                                                   socks
-                                                   model.socketsDict
-                                         }
-                                       )
-
-                   sockets =
-                       case Dict.get gameid model2.socketsDict of
-                           Nothing ->
-                               [ socket ]
-
-                           --can't happen
-                           Just socks ->
-                               socks
-               in
-               ( { model2 | state = state }
-               , sendToMany response sockets
-               )
-
+{-| (log (expt 26 16) 2) -> 75
 -}
+gameidLength : Int
+gameidLength =
+    16
+
+
+gameidGenerator : Generator GameId
+gameidGenerator =
+    Random.map String.fromList <|
+        Random.list gameidLength lowercaseLetter
+
+
+newGameid : WrappedModel servermodel message gamestate player -> ( GameId, WrappedModel servermodel message gamestate player )
+newGameid (WrappedModel model) =
+    let
+        ( res, seed ) =
+            Random.step gameidGenerator model.seed
+
+        mdl2 =
+            WrappedModel { model | seed = seed }
+    in
+    case Dict.get res model.state.gameDict of
+        Nothing ->
+            ( res, mdl2 )
+
+        Just _ ->
+            newGameid mdl2
+
+
+newPlayerid : WrappedModel servermodel message gamestate player -> ( PlayerId, WrappedModel servermodel message gamestate player )
+newPlayerid model =
+    let
+        ( gameid, mod ) =
+            newGameid model
+
+        playerid =
+            "P" ++ gameid
+    in
+    case mod of
+        WrappedModel mdl ->
+            case Dict.get playerid mdl.state.playerDict of
+                Nothing ->
+                    ( playerid, mod )
+
+                Just _ ->
+                    newPlayerid mod
+
+
+
 -- SUBSCRIPTIONS
 
 
