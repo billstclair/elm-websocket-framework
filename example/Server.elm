@@ -1,4 +1,4 @@
-port module ExampleServer exposing (..)
+port module Server exposing (..)
 
 import ExampleInterface
     exposing

@@ -116,6 +116,11 @@ messageView message =
         [ H.text message ]
 
 
+br : Html Msg
+br =
+    H.br [] []
+
+
 view : Model -> Html Msg
 view model =
     H.div
@@ -130,4 +135,11 @@ view model =
             , onEnter SubmitMessage
             ]
             []
+        , H.p []
+            [ H.text "Examples:"
+            , br
+            , H.code [] [ H.text "[\"req\",\"add\",{\"x\":1,\"y\":2}]" ]
+            , br
+            , H.code [] [ H.text "[\"req\",\"multiply\",{\"x\":7,\"y\":8}]" ]
+            ]
         ]
