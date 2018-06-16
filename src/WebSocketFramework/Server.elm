@@ -5,12 +5,37 @@ module WebSocketFramework.Server
         , ServerMessageSender
         , UserFunctions
         , WrappedModel(WrappedModel)
+        , init
         , newGameid
         , newPlayerid
         , program
         , sendToMany
         , sendToOne
         )
+
+{-| Support for a Node.js server for WebSocketFramework messages.
+
+
+# Types
+
+@docs Model, Msg, ServerMessageSender, UserFunctions, WrappedModel
+
+
+# Top-level program
+
+@docs program, init
+
+
+# Message sending
+
+@docs sendToOne, sendToMany
+
+
+# Support for creating random game and player identifiers.
+
+@docs newGameid, newPlayerid
+
+-}
 
 import Char
 import Debug exposing (log)
@@ -47,6 +72,13 @@ import WebSocketFramework.Types
 import WebSocketServer as WSS exposing (Socket)
 
 
+{-| Create the top-level application program.
+
+You will usually use the result of this function as the value of `main` in your top-level module.
+
+Most servers will not need to use the `servermodel`, but it's a place to stash extra server-wide state that doesn't make sense in the game-specific `gamestate`.
+
+-}
 program : servermodel -> UserFunctions servermodel message gamestate player -> Maybe gamestate -> Program Never (Model servermodel message gamestate player) Msg
 program servermodel userFunctions gamestate =
     Platform.program
@@ -68,14 +100,36 @@ type alias DeathWatchGameids =
     Dict GameId Bool
 
 
+{-| User function that is called to send the response(s) to a request.
+
+This will usually call `sentToOne` and/or `sendToMany` with the `message` emitted by the `ServiceMessageProcessor` in the `UserFunctions` passed to `program`.
+
+The first `message` is the request that came from client to server. The second `message` is the response. If no response is returned by the `ServiceMessageProcessor`, this function is not called.
+
+-}
 type alias ServerMessageSender servermodel message gamestate player =
     WrappedModel servermodel message gamestate player -> Socket -> ServerState gamestate player -> message -> message -> ( WrappedModel servermodel message gamestate player, Cmd Msg )
 
 
+{-| A type wrapper to prevent recursive types in `Model`.
+-}
 type WrappedModel servermodel message gamestate player
     = WrappedModel (Model servermodel message gamestate player)
 
 
+{-| User functions that get called by the generic server code.
+
+`encodeDecode` is used to translate messages to and from strings.
+
+`messageProcessor` processes a client request into state changes and a response message.
+
+`messageSender` decides what to do with the response message.
+
+`messageToGameid` extracts a GameId from a message, if there is one.
+
+`inputPort` and `outputPort` are the ports used to communicate with the Node.js code.
+
+-}
 type alias UserFunctions servermodel message gamestate player =
     { encodeDecode : EncodeDecode message
     , messageProcessor : ServerMessageProcessor gamestate player message
@@ -86,6 +140,11 @@ type alias UserFunctions servermodel message gamestate player =
     }
 
 
+{-| The server application model.
+
+`program` creates one of these, via a call to `init`.
+
+-}
 type alias Model servermodel message gamestate player =
     { servermodel : servermodel
     , userFunctions : UserFunctions servermodel message gamestate player
@@ -100,6 +159,11 @@ type alias Model servermodel message gamestate player =
     }
 
 
+{-| Return the initial `Model` and a `Cmd` to get the current time.
+
+Usually called for you by `program`.
+
+-}
 init : servermodel -> UserFunctions servermodel message gamestate player -> Maybe gamestate -> ( Model servermodel message gamestate player, Cmd Msg )
 init servermodel userFunctions gamestate =
     ( { servermodel = servermodel
@@ -121,6 +185,11 @@ init servermodel userFunctions gamestate =
 -- UPDATE
 
 
+{-| The messages processed by our `update` function.
+
+`Connection`, `Disconnection`, and `SocketMessage` from through the `inputPort` from the Node.JS code. `FirstTick` and `Tick` are used to track time. `Noop` does nothing.
+
+-}
 type Msg
     = Connection WSS.Socket
     | Disconnection WSS.Socket
@@ -313,6 +382,8 @@ disconnection model socket =
                     )
 
 
+{-| Send a message to a single socket.
+-}
 sendToOne : MessageEncoder message -> message -> OutputPort Msg -> Socket -> Cmd Msg
 sendToOne encoder message outputPort socket =
     WSS.sendToOne outputPort
@@ -320,6 +391,8 @@ sendToOne encoder message outputPort socket =
         (log "  " socket)
 
 
+{-| Send a message to a multiple sockets.
+-}
 sendToMany : MessageEncoder message -> message -> OutputPort Msg -> List Socket -> Cmd Msg
 sendToMany encoder message outputPort sockets =
     WSS.sendToMany outputPort
@@ -408,6 +481,11 @@ gameidGenerator =
         Random.list gameidLength lowercaseLetter
 
 
+{-| Generate a random GameId string, ensuring that it is not already assigned to a game.
+
+Will not be used by servers that have no concept of a game.
+
+-}
 newGameid : WrappedModel servermodel message gamestate player -> ( GameId, WrappedModel servermodel message gamestate player )
 newGameid (WrappedModel model) =
     let
@@ -425,6 +503,11 @@ newGameid (WrappedModel model) =
             newGameid mdl2
 
 
+{-| Generate a random PlayerId string, ensuring that it is not already assigned to a player.
+
+Will not be used by servers that have no concept of a player.
+
+-}
 newPlayerid : WrappedModel servermodel message gamestate player -> ( PlayerId, WrappedModel servermodel message gamestate player )
 newPlayerid model =
     let

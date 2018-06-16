@@ -15,16 +15,28 @@ module WebSocketFramework.EncodeDecode
         ( decodeMessage
         , decodePlist
         , decodeRawMessage
-        , decodeServerInterface
         , encodeMessage
-        , encodeServerInterface
         , messageDecoder
         , messageEncoder
         , rawMessageDecoder
         , rawMessageEncoder
-        , serverInterfaceDecoder
-        , serverInterfaceEncoder
         )
+
+{-| The `EncodeDecode` module handles translation of strings sent over the wire to and from your message types.
+
+
+# High-level functions
+
+Your WebSocket subscription message handler will need to use `decodeMessage`, but you'll rarely directly use the rest of the functions in this module.
+
+@docs decodeMessage, encodeMessage, messageDecoder, messageEncoder
+
+
+# Low-level functions
+
+@docs decodeRawMessage, rawMessageDecoder, rawMessageEncoder, decodePlist
+
+-}
 
 import Json.Decode as JD exposing (Decoder)
 import Json.Encode as JE exposing (Value)
@@ -39,51 +51,18 @@ import WebSocketFramework.Types as Types
         )
 
 
----
---- ServerInterface
----
-
-
-makeServerInterface : msg -> String -> ServerInterface gamestate player message msg
-makeServerInterface noop server =
-    ServerInterface
-        { server = server
-        , wrapper = \_ _ -> noop
-        , state = Nothing
-        , sender = \_ _ -> Cmd.none
-        }
-
-
-decodeServerInterface : msg -> String -> Result String (ServerInterface gamestate player message msg)
-decodeServerInterface msg json =
-    JD.decodeString (serverInterfaceDecoder msg) json
-
-
-serverInterfaceDecoder : msg -> Decoder (ServerInterface gamestate player message msg)
-serverInterfaceDecoder msg =
-    JD.map (makeServerInterface msg)
-        JD.string
-
-
-encodeServerInterface : ServerInterface gamestate player message msg -> String
-encodeServerInterface interface =
-    JE.encode 0 <| serverInterfaceEncoder interface
-
-
-serverInterfaceEncoder : ServerInterface gamestate player message msg -> Value
-serverInterfaceEncoder (ServerInterface interface) =
-    JE.string interface.server
-
-
-
 -- Message
 
 
+{-| Turn a string into a raw message.
+-}
 decodeRawMessage : String -> Result String RawMessage
 decodeRawMessage string =
     JD.decodeString rawMessageDecoder string
 
 
+{-| The `Decoder` used by `decodeRawMessage`
+-}
 rawMessageDecoder : Decoder RawMessage
 rawMessageDecoder =
     JD.map3 RawMessage
@@ -92,6 +71,8 @@ rawMessageDecoder =
         (JD.index 2 (JD.keyValuePairs JD.value))
 
 
+{-| Decode "req" or "rsp" and a `message` name into either `Req message` or `Rsp message`.
+-}
 decodeReqRsp : String -> String -> Result String ReqRsp
 decodeReqRsp reqrsp message =
     case reqrsp of
@@ -105,11 +86,15 @@ decodeReqRsp reqrsp message =
             Err <| "Expecting 'req' or 'rsp', got: '" ++ reqrsp ++ "'"
 
 
+{-| User a `MessageDecoder` that you write to turn a string into a message.
+-}
 decodeMessage : MessageDecoder message -> String -> Result String message
 decodeMessage decoder json =
     JD.decodeString (messageDecoder decoder) json
 
 
+{-| Create a `Decoder` for `decodeMessage`.
+-}
 messageDecoder : MessageDecoder message -> Decoder message
 messageDecoder decoder =
     rawMessageDecoder
@@ -129,11 +114,18 @@ messageDecoder decoder =
             )
 
 
+{-| Use a `MessageEncoder` that you write to turn a message into a string.
+-}
 encodeMessage : MessageEncoder message -> message -> String
 encodeMessage encoder message =
     JE.encode 0 <| messageEncoder encoder message
 
 
+{-| Use a `MessageEncoder` that you write to turn a message into a `Value`.
+
+Rarely used by anything but `encodeMessage`.
+
+-}
 messageEncoder : MessageEncoder message -> message -> Value
 messageEncoder encoder message =
     let
@@ -155,6 +147,8 @@ messageEncoder encoder message =
         }
 
 
+{-| Turn a raw message into a `Value`.
+-}
 rawMessageEncoder : RawMessage -> Value
 rawMessageEncoder message =
     JE.list
@@ -164,6 +158,8 @@ rawMessageEncoder message =
         ]
 
 
+{-| Decode a list of key/value pairs into a message.
+-}
 decodePlist : Decoder message -> Plist -> Result String message
 decodePlist decoder plist =
     JD.decodeValue decoder <| JE.object plist
