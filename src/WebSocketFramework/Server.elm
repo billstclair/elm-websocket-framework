@@ -1,7 +1,7 @@
 module WebSocketFramework.Server
     exposing
         ( Model
-        , Msg
+        , Msg(..)
         , ServerMessageSender
         , UserFunctions
         , WrappedModel(WrappedModel)
