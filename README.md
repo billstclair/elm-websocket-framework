@@ -2,6 +2,8 @@
 
 A websocket-based client/server framework written almost entirely in Elm.
 
+This package is the client side. The server side is in [billstclair/elm-websocket-framework-server](http://package.elm-lang.org/packages/billstclair/elm-websocket-framework-server/latest).
+
 You design your protocol, write JSON encoders and decoders for it, the server logic to use it to transform state, and the client logic to provide a user interface, and this package does the rest.
 
 The server side depends on [Node.js](https://nodejs.org/) and [RGBboy/websocket-server](http://package.elm-lang.org/packages/RGBboy/websocket-server/latest).

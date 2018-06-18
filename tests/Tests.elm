@@ -10,8 +10,7 @@ import Test exposing (..)
 import WebSocketFramework.EncodeDecode as ED exposing (decodePlist)
 import WebSocketFramework.Types as Types
     exposing
-        ( MessageParser
-        , Plist
+        ( Plist
         , ReqRsp(..)
         )
 
@@ -105,8 +104,8 @@ encoder message =
             )
 
 
-parser : ReqRsp -> Plist -> Result String Message
-parser reqrsp plist =
+parser : ( ReqRsp, Plist ) -> Result String Message
+parser ( reqrsp, plist ) =
     case reqrsp of
         Req msg ->
             case msg of

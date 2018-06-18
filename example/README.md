@@ -13,6 +13,6 @@ It starts out using a local "server", with no communication over the network.
 
 To use it, enter integers for "x" and "y" and click the "Add" or "Multiply" button. The result will be displayed, and a running log of all messages sent and received will be updated.
 
-If you have built and are running the [server](server/), you can click the "Connect" button to enable communication with its WebSocket. The "Connect" button will change to ""Disconnect", and the "URL" will be disabled for input. The log will say "sock" instead of "recv" for received messages.
+If you have built and are running the [server](http://package.elm-lang.org/packages/billstclair/elm-websocket-framework-server/latest) example, you can click the "Connect" button to enable communication with its WebSocket. The "Connect" button will change to ""Disconnect", and the "URL" will be disabled for input. The log will say "sock" instead of "recv" for received messages.
 
-The user code for the server is in [Server.elm](Server.elm). Not much to it. I have a more involved example under construction at [billstclair/elm-chat-server](https://github.com/billstclair/elm-chat-server).
+The example server code is in the "example" directory of [billstclair/elm-websocket-framework-server](http://package.elm-lang.org/packages/billstclair/elm-websocket-framework-server/latest). Not much to it. I have a more involved example under construction at [billstclair/elm-chat-server](https://github.com/billstclair/elm-chat-server).
