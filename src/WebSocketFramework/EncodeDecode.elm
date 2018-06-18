@@ -16,6 +16,7 @@ module WebSocketFramework.EncodeDecode
         , decodePlist
         , decodeRawMessage
         , encodeMessage
+        , genericMessageDecoder
         , messageDecoder
         , messageEncoder
         , rawMessageDecoder
@@ -27,9 +28,9 @@ module WebSocketFramework.EncodeDecode
 
 # High-level functions
 
-Your WebSocket subscription message handler will need to use `decodeMessage`, but you'll rarely directly use the rest of the functions in this module.
+Your WebSocket subscription message handler will need to use `decodeMessage`, and you will often use `genericMessageDecoder`, but you'll rarely directly use the rest of the functions in this module.
 
-@docs decodeMessage, encodeMessage, messageDecoder, messageEncoder
+@docs decodeMessage, genericMessageDecoder, encodeMessage, messageDecoder, messageEncoder
 
 
 # Low-level functions
@@ -38,11 +39,13 @@ Your WebSocket subscription message handler will need to use `decodeMessage`, bu
 
 -}
 
+import Dict
 import Json.Decode as JD exposing (Decoder)
 import Json.Encode as JE exposing (Value)
 import WebSocketFramework.Types as Types
     exposing
-        ( MessageDecoder
+        ( DecoderPlist
+        , MessageDecoder
         , MessageEncoder
         , Plist
         , RawMessage
@@ -163,3 +166,34 @@ rawMessageEncoder message =
 decodePlist : Decoder message -> Plist -> Result String message
 decodePlist decoder plist =
     JD.decodeValue decoder <| JE.object plist
+
+
+{-| Simplify the writing of `MessageDecoder` definitions.
+
+Takes two plists mapping request names to decoders and response names to decoders.
+
+Returns a `MessageDecoder` that uses them.
+
+-}
+genericMessageDecoder : DecoderPlist msg -> DecoderPlist msg -> MessageDecoder msg
+genericMessageDecoder reqPlist rspPlist ( reqrsp, plist ) =
+    case reqrsp of
+        Req msg ->
+            decoderPlistDecoder reqPlist "request" msg plist
+
+        Rsp msg ->
+            decoderPlistDecoder rspPlist "response" msg plist
+
+
+decoderPlistDecoder : DecoderPlist msg -> String -> String -> Plist -> Result String msg
+decoderPlistDecoder decoderPlist typ msg plist =
+    let
+        dict =
+            Dict.fromList decoderPlist
+    in
+    case Dict.get msg dict of
+        Nothing ->
+            Err <| "Unknown " ++ typ ++ "message: '" ++ msg ++ "'"
+
+        Just decoder ->
+            decodePlist decoder plist

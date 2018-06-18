@@ -12,7 +12,8 @@
 
 module WebSocketFramework.Types
     exposing
-        ( EncodeDecode
+        ( DecoderPlist
+        , EncodeDecode
         , ErrorRsp
         , GameId
         , InputPort
@@ -62,7 +63,7 @@ module WebSocketFramework.Types
 
 # Message Encoding/Decoding
 
-@docs MessageDecoder, MessageEncoder, EncodeDecode
+@docs MessageDecoder, MessageEncoder, EncodeDecode, DecoderPlist
 
 
 # Utility
@@ -83,7 +84,7 @@ module WebSocketFramework.Types
 
 import Char
 import Dict exposing (Dict)
-import Json.Decode as JD
+import Json.Decode as JD exposing (Decoder)
 import Json.Encode as JE exposing (Value)
 import String.Extra as SE
 
@@ -162,6 +163,12 @@ type alias EncodeDecode message =
     , decoder : MessageDecoder message
     , errorWrapper : Maybe (String -> message)
     }
+
+
+{-| Map a list of request or response names to decoders for their messages.
+-}
+type alias DecoderPlist msg =
+    List ( String, Decoder msg )
 
 
 {-| Type signature of a function that checks if a message is a legal request for a gamestate.
