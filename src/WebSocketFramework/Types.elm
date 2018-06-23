@@ -14,6 +14,8 @@ module WebSocketFramework.Types
     exposing
         ( DecoderPlist
         , EncodeDecode
+        , Error
+        , ErrorKind(..)
         , ErrorRsp
         , GameId
         , InputPort
@@ -74,6 +76,11 @@ module WebSocketFramework.Types
 # Server Ports
 
 @docs InputPort, OutputPort
+
+
+# Errors
+
+@docs ErrorKind, Error
 
 
 # Aliases
@@ -156,12 +163,36 @@ type alias MessageEncoder message =
     message -> ( ReqRsp, Plist )
 
 
+{-| The kind of error being reported in an `Error` instance.
+-}
+type ErrorKind
+    = JsonParseError
+    | UnspecifiedError
+
+
+{-| Description of an error passed to `EncodeDecode.errorWrapper`.
+
+If `kind` is `JsonParseError`, then `description` is the message text,
+and `message` is the error returned from parsing it.
+
+If `kind` is `UnspecifiedError`, then `description` is user-level text,
+and `message` is `Ok` wrapped around the relevant message, if there
+is one, or `Err` wrapped around some likely useless string.
+
+-}
+type alias Error message =
+    { kind : ErrorKind
+    , description : String
+    , message : Result String message
+    }
+
+
 {-| Wrapping of encoder, decoder, and error message creator.
 -}
 type alias EncodeDecode message =
     { encoder : MessageEncoder message
     , decoder : MessageDecoder message
-    , errorWrapper : Maybe (String -> message)
+    , errorWrapper : Maybe (Error message -> message)
     }
 
 

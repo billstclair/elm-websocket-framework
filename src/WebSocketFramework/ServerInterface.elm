@@ -70,6 +70,7 @@ import WebSocketFramework.EncodeDecode exposing (decodeMessage, encodeMessage)
 import WebSocketFramework.Types as Types
     exposing
         ( EncodeDecode
+        , ErrorKind(..)
         , ErrorRsp
         , GameId
         , MessageEncoder
@@ -122,13 +123,18 @@ fullMessageProcessor : EncodeDecode message -> ServerMessageProcessor gamestate 
 fullMessageProcessor encodeDecode messageProcessor state message =
     let
         err =
-            \msg ->
+            \req msg ->
                 case encodeDecode.errorWrapper of
                     Nothing ->
                         Nothing
 
                     Just wrapper ->
-                        Just <| wrapper msg
+                        Just <|
+                            wrapper
+                                { kind = JsonParseError
+                                , description = req
+                                , message = Err msg
+                                }
 
         req =
             encodeMessage encodeDecode.encoder message
@@ -139,7 +145,7 @@ fullMessageProcessor encodeDecode messageProcessor state message =
     in
     case decodeMessage encodeDecode.decoder req of
         Err msg ->
-            ( state, err msg )
+            ( state, err req msg )
 
         Ok message2 ->
             let
@@ -162,7 +168,7 @@ fullMessageProcessor encodeDecode messageProcessor state message =
                             in
                             case decodeMessage encodeDecode.decoder rsp of
                                 Err msg ->
-                                    err msg
+                                    err rsp msg
 
                                 Ok m ->
                                     Just m
