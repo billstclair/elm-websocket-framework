@@ -25,6 +25,8 @@ module WebSocketFramework.ServerInterface
         , getServer
         , makeProxyServer
         , makeServer
+        , newGameid
+        , newPlayerid
         , removeGame
         , removePlayer
         , removePublicGame
@@ -64,15 +66,22 @@ module WebSocketFramework.ServerInterface
 @docs appendPublicGames, removePublicGame
 
 
+# Support for creating random game and player identifiers.
+
+@docs newGameid, newPlayerid
+
+
 # Errors
 
 @docs errorRsp
 
 -}
 
+import Char
 import Debug exposing (log)
 import Dict exposing (Dict)
 import List.Extra as LE
+import Random exposing (Generator)
 import Task
 import WebSocket
 import WebSocketFramework.EncodeDecode exposing (decodeMessage, encodeMessage)
@@ -442,3 +451,78 @@ appendPublicGames game games =
 removePublicGame : GameId -> PublicGames -> PublicGames
 removePublicGame gameid games =
     List.filter (\game -> game.gameid /= gameid) games
+
+
+lowercaseLetter : Generator Char
+lowercaseLetter =
+    Random.map (\n -> Char.fromCode (n + 97)) (Random.int 0 25)
+
+
+{-| (log (expt 26 16) 2) -> 75
+-}
+gameidLength : Int
+gameidLength =
+    16
+
+
+gameidGenerator : Generator GameId
+gameidGenerator =
+    Random.map String.fromList <|
+        Random.list gameidLength lowercaseLetter
+
+
+randomConstant : a -> Generator a
+randomConstant value =
+    Random.map (\_ -> value) Random.bool
+
+
+uniqueGameidGenerator : ServerState gamestate player -> Generator GameId
+uniqueGameidGenerator state =
+    Random.andThen
+        (\gameid ->
+            case Dict.get gameid state.gameDict of
+                Nothing ->
+                    randomConstant gameid
+
+                Just _ ->
+                    uniqueGameidGenerator state
+        )
+        gameidGenerator
+
+
+uniquePlayeridGenerator : ServerState gamestate player -> Generator PlayerId
+uniquePlayeridGenerator state =
+    Random.andThen
+        (\gameid ->
+            let
+                playerid =
+                    "P" ++ gameid
+            in
+            case Dict.get playerid state.playerDict of
+                Nothing ->
+                    randomConstant playerid
+
+                Just _ ->
+                    uniquePlayeridGenerator state
+        )
+        gameidGenerator
+
+
+{-| Generate a random GameId string, ensuring that it is not already assigned to a game.
+
+Will not be used by servers that have no concept of a game.
+
+-}
+newGameid : (GameId -> msg) -> ServerState gamestate player -> Cmd msg
+newGameid tagger state =
+    Random.generate tagger <| uniqueGameidGenerator state
+
+
+{-| Generate a random PlayerId string, ensuring that it is not already assigned to a player.
+
+Will not be used by servers that have no concept of a player.
+
+-}
+newPlayerid : (PlayerId -> msg) -> ServerState gamestate player -> Cmd msg
+newPlayerid tagger state =
+    Random.generate tagger <| uniquePlayeridGenerator state
