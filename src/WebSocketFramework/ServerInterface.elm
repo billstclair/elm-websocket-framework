@@ -87,7 +87,7 @@ import WebSocket
 import WebSocketFramework.EncodeDecode exposing (decodeMessage, encodeMessage)
 import WebSocketFramework.Types as Types
     exposing
-        ( Changes(..)
+        ( Changes
         , EncodeDecode
         , ErrorKind(..)
         , ErrorRsp
@@ -279,20 +279,18 @@ addGame gameid gamestate state =
         , changes =
             case state.changes of
                 Nothing ->
-                    Just <|
-                        Changes
-                            { addedGames = [ gameid ]
-                            , addedPlayers = []
-                            , removedGames = []
-                            , removedPlayers = []
-                            }
+                    Just
+                        { addedGames = [ gameid ]
+                        , addedPlayers = []
+                        , removedGames = []
+                        , removedPlayers = []
+                        }
 
-                Just (Changes changes) ->
-                    Just <|
-                        Changes
-                            { changes
-                                | addedGames = gameid :: changes.addedGames
-                            }
+                Just changes ->
+                    Just
+                        { changes
+                            | addedGames = gameid :: changes.addedGames
+                        }
     }
 
 
@@ -311,20 +309,18 @@ removeGame gameid playerids state =
         , changes =
             case state.changes of
                 Nothing ->
-                    Just <|
-                        Changes
-                            { addedGames = []
-                            , addedPlayers = []
-                            , removedGames = [ gameid ]
-                            , removedPlayers = []
-                            }
+                    Just
+                        { addedGames = []
+                        , addedPlayers = []
+                        , removedGames = [ gameid ]
+                        , removedPlayers = []
+                        }
 
-                Just (Changes changes) ->
-                    Just <|
-                        Changes
-                            { changes
-                                | removedGames = gameid :: changes.removedGames
-                            }
+                Just changes ->
+                    Just
+                        { changes
+                            | removedGames = gameid :: changes.removedGames
+                        }
     }
 
 
@@ -335,25 +331,28 @@ Adds the player ID to the added players list in changes, so that the server code
 -}
 addPlayer : PlayerId -> PlayerInfo player -> ServerState gamestate player -> ServerState gamestate player
 addPlayer playerid info state =
+    let
+        tuple =
+            ( info.gameid, playerid )
+    in
     { state
         | playerDict = Dict.insert playerid info state.playerDict
         , changes =
             case state.changes of
                 Nothing ->
-                    Just <|
-                        Changes
-                            { addedGames = []
-                            , addedPlayers = [ playerid ]
-                            , removedGames = []
-                            , removedPlayers = []
-                            }
+                    Just
+                        { addedGames = []
+                        , addedPlayers = [ tuple ]
+                        , removedGames = []
+                        , removedPlayers = []
+                        }
 
-                Just (Changes changes) ->
-                    Just <|
-                        Changes
-                            { changes
-                                | addedPlayers = playerid :: changes.addedPlayers
-                            }
+                Just changes ->
+                    Just
+                        { changes
+                            | addedPlayers =
+                                tuple :: changes.addedPlayers
+                        }
     }
 
 
@@ -364,27 +363,35 @@ Adds the player ID to the removed players list in changes, so that the server co
 -}
 removePlayer : PlayerId -> ServerState gamestate player -> ServerState gamestate player
 removePlayer playerid state =
-    { state
-        | playerDict =
-            Dict.remove playerid state.playerDict
-        , changes =
-            case state.changes of
-                Nothing ->
-                    Just <|
-                        Changes
-                            { addedGames = []
-                            , addedPlayers = []
-                            , removedGames = []
-                            , removedPlayers = [ playerid ]
-                            }
+    case Dict.get playerid state.playerDict of
+        Nothing ->
+            state
 
-                Just (Changes changes) ->
-                    Just <|
-                        Changes
-                            { changes
-                                | removedPlayers = playerid :: changes.removedPlayers
-                            }
-    }
+        Just { gameid } ->
+            let
+                tuple =
+                    ( gameid, playerid )
+            in
+            { state
+                | playerDict =
+                    Dict.remove playerid state.playerDict
+                , changes =
+                    case state.changes of
+                        Nothing ->
+                            Just
+                                { addedGames = []
+                                , addedPlayers = []
+                                , removedGames = []
+                                , removedPlayers = [ tuple ]
+                                }
+
+                        Just changes ->
+                            Just
+                                { changes
+                                    | removedPlayers =
+                                        tuple :: changes.removedPlayers
+                                }
+            }
 
 
 {-| Check that the passed `GameId` is in the `ServerState`'s game dict.

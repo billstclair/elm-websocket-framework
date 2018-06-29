@@ -12,7 +12,7 @@
 
 module WebSocketFramework.Types
     exposing
-        ( Changes(..)
+        ( Changes
         , DecoderPlist
         , EncodeDecode
         , Error
@@ -258,13 +258,12 @@ emptyPublicGames =
 Interact with it via `ServerInterface.addGame`, `addPlayer`, `removeGame`, `removePlayer`.
 
 -}
-type Changes
-    = Changes
-        { addedGames : List GameId
-        , addedPlayers : List PlayerId
-        , removedGames : List GameId
-        , removedPlayers : List PlayerId
-        }
+type alias Changes =
+    { addedGames : List GameId
+    , addedPlayers : List ( GameId, PlayerId )
+    , removedGames : List GameId
+    , removedPlayers : List ( GameId, PlayerId )
+    }
 
 
 {-| The part of the server state that is independent from its socket connections.
