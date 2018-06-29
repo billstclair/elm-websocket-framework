@@ -1,5 +1,5 @@
 {
-    "version": "7.0.0",
+    "version": "8.0.0",
     "summary": "elm-websocket-framework eases the creation of server-based applications.",
     "repository": "https://github.com/billstclair/elm-websocket-framework.git",
     "license": "MIT",

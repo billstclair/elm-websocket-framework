@@ -94,7 +94,7 @@ import Char
 import Dict exposing (Dict)
 import Json.Decode as JD exposing (Decoder)
 import Json.Encode as JE exposing (Value)
-import Random exposing (Seed)
+import Random
 import String.Extra as SE
 
 
@@ -281,7 +281,7 @@ type alias ServerState gamestate player =
     , playerDict : Dict PlayerId (PlayerInfo player)
     , publicGames : PublicGames
     , state : Maybe gamestate --used by servers with no concept of game
-    , seed : Seed
+    , seed : Random.Seed
     , changes : Maybe Changes
     }
 
