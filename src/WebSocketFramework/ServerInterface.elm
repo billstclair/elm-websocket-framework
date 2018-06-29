@@ -259,6 +259,9 @@ errorRsp message text =
 
 
 {-| Add a game to a `ServerState`.
+
+Adds the game ID to the added games list in changes, so that the server code will update its tables.
+
 -}
 addGame : GameId -> gamestate -> ServerState gamestate player -> ServerState gamestate player
 addGame gameid gamestate state =
@@ -284,7 +287,10 @@ addGame gameid gamestate state =
     }
 
 
-{-| Remove a game from a `ServerState`
+{-| Remove a game and its players from a `ServerState`.
+
+Removes the game ID from the removed games list in changes, so that the server code will update its tables.
+
 -}
 removeGame : GameId -> List PlayerId -> ServerState gamestate player -> ServerState gamestate player
 removeGame gameid playerids state =
@@ -314,6 +320,9 @@ removeGame gameid playerids state =
 
 
 {-| Add a player to a `ServerState`.
+
+Adds the player ID to the added players list in changes, so that the server code will update its tables.
+
 -}
 addPlayer : PlayerId -> PlayerInfo player -> ServerState gamestate player -> ServerState gamestate player
 addPlayer playerid info state =
@@ -339,7 +348,10 @@ addPlayer playerid info state =
     }
 
 
-{-| Remove a player from a `ServerState`
+{-| Remove a player from a `ServerState`.
+
+Adds the player ID to the removed players list in changes, so that the server code will update its tables.
+
 -}
 removePlayer : PlayerId -> ServerState gamestate player -> ServerState gamestate player
 removePlayer playerid state =
