@@ -520,9 +520,13 @@ uniquePlayeridGenerator state =
 Will not be used by servers that have no concept of a game.
 
 -}
-newGameid : (GameId -> msg) -> ServerState gamestate player -> Cmd msg
+newGameid : (GameId -> msg) -> ServerState gamestate player -> ( GameId, ServerState gamestate player )
 newGameid tagger state =
-    Random.generate tagger <| uniqueGameidGenerator state
+    let
+        ( id, seed ) =
+            Random.step (uniqueGameidGenerator state) state.seed
+    in
+    ( id, { state | seed = seed } )
 
 
 {-| Generate a random PlayerId string, ensuring that it is not already assigned to a player.
@@ -530,6 +534,10 @@ newGameid tagger state =
 Will not be used by servers that have no concept of a player.
 
 -}
-newPlayerid : (PlayerId -> msg) -> ServerState gamestate player -> Cmd msg
+newPlayerid : (PlayerId -> msg) -> ServerState gamestate player -> ( PlayerId, ServerState gamestate player )
 newPlayerid tagger state =
-    Random.generate tagger <| uniquePlayeridGenerator state
+    let
+        ( id, seed ) =
+            Random.step (uniquePlayeridGenerator state) state.seed
+    in
+    ( id, { state | seed = seed } )
