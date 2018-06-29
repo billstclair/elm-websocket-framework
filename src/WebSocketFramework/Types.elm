@@ -12,7 +12,8 @@
 
 module WebSocketFramework.Types
     exposing
-        ( DecoderPlist
+        ( Changes(..)
+        , DecoderPlist
         , EncodeDecode
         , Error
         , ErrorKind(..)
@@ -45,7 +46,7 @@ module WebSocketFramework.Types
 
 # State
 
-@docs ServerState, ServerInterface, PlayerInfo, PublicGame, PublicGames
+@docs ServerState, ServerInterface, PlayerInfo, PublicGame, PublicGames, Changes
 
 
 # Empty states
@@ -252,6 +253,20 @@ emptyPublicGames =
     []
 
 
+{-| Used to inform the server of added and removed games and players.
+
+Interact with it via `ServerInterface.addGame`, `addPlayer`, `removeGame`, `removePlayer`.
+
+-}
+type Changes
+    = Changes
+        { addedGames : List GameId
+        , addedPlayers : List PlayerId
+        , removedGames : List GameId
+        , removedPlayers : List PlayerId
+        }
+
+
 {-| The part of the server state that is independent from its socket connections.
 
 You might think that the names are per game, and you'd be right to think that.
@@ -266,6 +281,7 @@ type alias ServerState gamestate player =
     , playerDict : Dict PlayerId (PlayerInfo player)
     , publicGames : PublicGames
     , state : Maybe gamestate --used by servers with no concept of game
+    , changes : Maybe Changes
     }
 
 
@@ -277,6 +293,7 @@ emptyServerState gamestate =
     , playerDict = Dict.empty
     , publicGames = emptyPublicGames
     , state = gamestate
+    , changes = Nothing
     }
 
 

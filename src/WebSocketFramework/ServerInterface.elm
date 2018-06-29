@@ -13,7 +13,9 @@
 
 module WebSocketFramework.ServerInterface
     exposing
-        ( appendPublicGames
+        ( addGame
+        , addPlayer
+        , appendPublicGames
         , checkGameid
         , checkOnlyGameid
         , checkPlayerid
@@ -23,6 +25,8 @@ module WebSocketFramework.ServerInterface
         , getServer
         , makeProxyServer
         , makeServer
+        , removeGame
+        , removePlayer
         , removePublicGame
         , send
         )
@@ -50,6 +54,11 @@ module WebSocketFramework.ServerInterface
 @docs checkOnlyGameid, checkGameid, checkPlayerid, dummyGameid
 
 
+# Game and Player addition and removal
+
+@docs addGame, addPlayer, removeGame, removePlayer
+
+
 # Public Games
 
 @docs appendPublicGames, removePublicGame
@@ -69,7 +78,8 @@ import WebSocket
 import WebSocketFramework.EncodeDecode exposing (decodeMessage, encodeMessage)
 import WebSocketFramework.Types as Types
     exposing
-        ( EncodeDecode
+        ( Changes(..)
+        , EncodeDecode
         , ErrorKind(..)
         , ErrorRsp
         , GameId
@@ -245,6 +255,114 @@ errorRsp : message -> String -> ErrorRsp message
 errorRsp message text =
     { request = message
     , text = text
+    }
+
+
+{-| Add a game to a `ServerState`.
+-}
+addGame : GameId -> gamestate -> ServerState gamestate player -> ServerState gamestate player
+addGame gameid gamestate state =
+    { state
+        | gameDict = Dict.insert gameid gamestate state.gameDict
+        , changes =
+            case state.changes of
+                Nothing ->
+                    Just <|
+                        Changes
+                            { addedGames = [ gameid ]
+                            , addedPlayers = []
+                            , removedGames = []
+                            , removedPlayers = []
+                            }
+
+                Just (Changes changes) ->
+                    Just <|
+                        Changes
+                            { changes
+                                | addedGames = gameid :: changes.addedGames
+                            }
+    }
+
+
+{-| Remove a game from a `ServerState`
+-}
+removeGame : GameId -> List PlayerId -> ServerState gamestate player -> ServerState gamestate player
+removeGame gameid playerids state =
+    { state
+        | gameDict = Dict.remove gameid state.gameDict
+        , playerDict =
+            List.foldl Dict.remove state.playerDict playerids
+        , publicGames = removePublicGame gameid state.publicGames
+        , changes =
+            case state.changes of
+                Nothing ->
+                    Just <|
+                        Changes
+                            { addedGames = []
+                            , addedPlayers = []
+                            , removedGames = [ gameid ]
+                            , removedPlayers = []
+                            }
+
+                Just (Changes changes) ->
+                    Just <|
+                        Changes
+                            { changes
+                                | removedGames = gameid :: changes.removedGames
+                            }
+    }
+
+
+{-| Add a player to a `ServerState`.
+-}
+addPlayer : PlayerId -> PlayerInfo player -> ServerState gamestate player -> ServerState gamestate player
+addPlayer playerid info state =
+    { state
+        | playerDict = Dict.insert playerid info state.playerDict
+        , changes =
+            case state.changes of
+                Nothing ->
+                    Just <|
+                        Changes
+                            { addedGames = []
+                            , addedPlayers = [ playerid ]
+                            , removedGames = []
+                            , removedPlayers = []
+                            }
+
+                Just (Changes changes) ->
+                    Just <|
+                        Changes
+                            { changes
+                                | addedPlayers = playerid :: changes.addedPlayers
+                            }
+    }
+
+
+{-| Remove a player from a `ServerState`
+-}
+removePlayer : PlayerId -> ServerState gamestate player -> ServerState gamestate player
+removePlayer playerid state =
+    { state
+        | playerDict =
+            Dict.remove playerid state.playerDict
+        , changes =
+            case state.changes of
+                Nothing ->
+                    Just <|
+                        Changes
+                            { addedGames = []
+                            , addedPlayers = []
+                            , removedGames = []
+                            , removedPlayers = [ playerid ]
+                            }
+
+                Just (Changes changes) ->
+                    Just <|
+                        Changes
+                            { changes
+                                | removedPlayers = playerid :: changes.removedPlayers
+                            }
     }
 
 
