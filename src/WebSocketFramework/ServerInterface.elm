@@ -22,6 +22,8 @@ module WebSocketFramework.ServerInterface
         , dummyGameid
         , errorRsp
         , fullMessageProcessor
+        , getGame
+        , getPlayer
         , getServer
         , makeProxyServer
         , makeServer
@@ -31,6 +33,8 @@ module WebSocketFramework.ServerInterface
         , removePlayer
         , removePublicGame
         , send
+        , updateGame
+        , updatePlayer
         )
 
 {-| Functions that connect the client code to the server.
@@ -69,6 +73,11 @@ module WebSocketFramework.ServerInterface
 # Support for creating random game and player identifiers.
 
 @docs newGameid, newPlayerid
+
+
+# Utilities
+
+@docs getGame, updateGame, getPlayer, updatePlayer
 
 
 # Errors
@@ -541,3 +550,53 @@ newPlayerid state =
             Random.step (uniquePlayeridGenerator state) state.seed
     in
     ( id, { state | seed = seed } )
+
+
+{-| Look up the gamestate for a GameId
+-}
+getGame : GameId -> ServerState gamestate player -> Maybe gamestate
+getGame gameid state =
+    Dict.get gameid state.gameDict
+
+
+{-| Update the gamestate for a GameId.
+
+Pass `Nothing` to remove the game's state.
+
+-}
+updateGame : GameId -> Maybe gamestate -> ServerState gamestate player -> ServerState gamestate player
+updateGame gameid gamestate state =
+    { state
+        | gameDict =
+            case gamestate of
+                Nothing ->
+                    Dict.remove gameid state.gameDict
+
+                Just gs ->
+                    Dict.insert gameid gs state.gameDict
+    }
+
+
+{-| Look up the PlayerInfo for a PlayerId
+-}
+getPlayer : PlayerId -> ServerState gamestate player -> Maybe (PlayerInfo player)
+getPlayer playerid state =
+    Dict.get playerid state.playerDict
+
+
+{-| Update the PlyaerInfo for a PlayerId.
+
+Pass `Nothing` to remove the player's info.
+
+-}
+updatePlayer : PlayerId -> Maybe (PlayerInfo player) -> ServerState gamestate player -> ServerState gamestate player
+updatePlayer playerid info state =
+    { state
+        | playerDict =
+            case info of
+                Nothing ->
+                    Dict.remove playerid state.playerDict
+
+                Just pi ->
+                    Dict.insert playerid pi state.playerDict
+    }
