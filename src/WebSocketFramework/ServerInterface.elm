@@ -22,6 +22,7 @@ module WebSocketFramework.ServerInterface
         , dummyGameid
         , errorRsp
         , fullMessageProcessor
+        , gameCount
         , getGame
         , getPlayer
         , getServer
@@ -77,7 +78,7 @@ module WebSocketFramework.ServerInterface
 
 # Utilities
 
-@docs getGame, updateGame, getPlayer, updatePlayer
+@docs getGame, updateGame, gameCount, getPlayer, updatePlayer
 
 
 # Errors
@@ -575,6 +576,13 @@ updateGame gameid gamestate state =
                 Just gs ->
                     Dict.insert gameid gs state.gameDict
     }
+
+
+{-| Return the total number of games.
+-}
+gameCount : ServerState gamestate player -> Int
+gameCount state =
+    Dict.size state.gameDict
 
 
 {-| Look up the PlayerInfo for a PlayerId
