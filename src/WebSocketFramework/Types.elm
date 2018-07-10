@@ -281,7 +281,7 @@ type alias Dicts gamestate player =
 
 {-| The part of the server state that is independent from its socket connections.
 
-You will rarely access the three `Dict`s directly. Instead, use `addGame`, `addPlayer`, `getGame`, `getPlayer`, `updateGame`, `updatePlayer`, `removeGame`, `removePlayer` from `WebsocketFramework.ServerInterface`.
+To access the opaque `dicts`, use `addGame`, `addPlayer`, `getGame`, `getPlayer`, `getPlayerGames`, `updateGame`, `updatePlayer`, `removeGame`, `removePlayer` from `WebsocketFramework.ServerInterface`.
 
 -}
 type alias ServerState gamestate player =
