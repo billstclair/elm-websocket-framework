@@ -323,8 +323,8 @@ addGame gameid gamestate state =
 Removes the game ID from the removed games list in changes, so that the server code will update its tables.
 
 -}
-removeGame : GameId -> List PlayerId -> ServerState gamestate player -> ServerState gamestate player
-removeGame gameid playerids state =
+removeGame : GameId -> ServerState gamestate player -> ServerState gamestate player
+removeGame gameid state =
     let
         pids =
             getGamePlayers gameid state
@@ -336,7 +336,7 @@ removeGame gameid playerids state =
             Dict.remove gameid dicts.gameDict
 
         playerDict =
-            List.foldl Dict.remove dicts.playerDict playerids
+            List.foldl Dict.remove dicts.playerDict pids
 
         gamePlayersDict =
             Dict.remove gameid dicts.gamePlayersDict
