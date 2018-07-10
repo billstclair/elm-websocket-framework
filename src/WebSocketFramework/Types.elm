@@ -262,7 +262,7 @@ Interact with it via `ServerInterface.addGame`, `addPlayer`, `removeGame`, `remo
 type alias Changes =
     { addedGames : List GameId
     , addedPlayers : List ( GameId, PlayerId )
-    , removedGames : List GameId
+    , removedGames : List ( GameId, List PlayerId )
     , removedPlayers : List ( GameId, PlayerId )
     }
 

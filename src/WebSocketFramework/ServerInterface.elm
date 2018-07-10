@@ -315,6 +315,10 @@ Removes the game ID from the removed games list in changes, so that the server c
 -}
 removeGame : GameId -> List PlayerId -> ServerState gamestate player -> ServerState gamestate player
 removeGame gameid playerids state =
+    let
+        pids =
+            getGamePlayers gameid state
+    in
     { state
         | gameDict = Dict.remove gameid state.gameDict
         , playerDict =
@@ -327,14 +331,14 @@ removeGame gameid playerids state =
                     Just
                         { addedGames = []
                         , addedPlayers = []
-                        , removedGames = [ gameid ]
+                        , removedGames = [ ( gameid, pids ) ]
                         , removedPlayers = []
                         }
 
                 Just changes ->
                     Just
                         { changes
-                            | removedGames = gameid :: changes.removedGames
+                            | removedGames = ( gameid, pids ) :: changes.removedGames
                         }
     }
 
