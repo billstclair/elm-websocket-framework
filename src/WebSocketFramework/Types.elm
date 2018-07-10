@@ -1,7 +1,7 @@
 ---------------------------------------------------------------------
 --
 -- Types.elm
--- Shared types for WebSocketFramework module.
+-- Internal types for WebSocketFramework module.
 -- Copyright (c) 2018 Bill St. Clair <billstclair@gmail.com>
 -- Some rights reserved.
 -- Distributed under the MIT License
@@ -269,16 +269,13 @@ type alias Changes =
 
 {-| The part of the server state that is independent from its socket connections.
 
-You might think that the names are per game, and you'd be right to think that.
-They're not in the GameState, because they don't need to go over the wire,
-except in the JoinRsp.
-
-They're stored in a Dict in the Server model.
+You will rarely access the three `Dict`s directly. Instead, use `addGame`, `addPlayer`, `getGame`, `getPlayer`, `updateGame`, `updatePlayer`, `removeGame`, `removePlayer` from `WebsocketFramework.ServerInterface`.
 
 -}
 type alias ServerState gamestate player =
     { gameDict : Dict GameId gamestate
     , playerDict : Dict PlayerId (PlayerInfo player)
+    , gamePlayersDict : Dict GameId (List PlayerId)
     , publicGames : PublicGames
     , state : Maybe gamestate --used by servers with no concept of game
     , seed : Random.Seed
@@ -287,11 +284,16 @@ type alias ServerState gamestate player =
 
 
 {-| Create a mostly empty `ServerState`.
+
+You'll need to initialize the `seed` property in your real server,
+if you use `newGameid` and `newPlayerid` in `WebSocketFramework.ServerInterface`.
+
 -}
 emptyServerState : Maybe gamestate -> ServerState gamestate player
 emptyServerState gamestate =
     { gameDict = Dict.empty
     , playerDict = Dict.empty
+    , gamePlayersDict = Dict.empty
     , publicGames = emptyPublicGames
     , state = gamestate
     , seed = Random.initialSeed 0

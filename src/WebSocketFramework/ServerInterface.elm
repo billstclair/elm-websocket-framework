@@ -24,8 +24,11 @@ module WebSocketFramework.ServerInterface
         , fullMessageProcessor
         , gameCount
         , getGame
+        , getGamePlayers
         , getPlayer
         , getServer
+        , isPrivateGame
+        , isPublicGame
         , makeProxyServer
         , makeServer
         , newGameid
@@ -71,14 +74,15 @@ module WebSocketFramework.ServerInterface
 @docs appendPublicGames, removePublicGame
 
 
-# Support for creating random game and player identifiers.
+# Create random game and player identifiers.
 
 @docs newGameid, newPlayerid
 
 
 # Utilities
 
-@docs getGame, updateGame, gameCount, getPlayer, updatePlayer
+@docs getGame, updateGame, gameCount, getPlayer, updatePlayer, getGamePlayers
+@docs isPublicGame, isPrivateGame
 
 
 # Errors
@@ -315,6 +319,7 @@ removeGame gameid playerids state =
         | gameDict = Dict.remove gameid state.gameDict
         , playerDict =
             List.foldl Dict.remove state.playerDict playerids
+        , gamePlayersDict = Dict.remove gameid state.gamePlayersDict
         , publicGames = removePublicGame gameid state.publicGames
         , changes =
             case state.changes of
@@ -334,6 +339,16 @@ removeGame gameid playerids state =
     }
 
 
+{-| Why is this not `List.adjoin`?
+-}
+adjoin : a -> List a -> List a
+adjoin a list =
+    if List.member a list then
+        list
+    else
+        a :: list
+
+
 {-| Add a player to a `ServerState`.
 
 Adds the player ID to the added players list in changes, so that the server code will update its tables.
@@ -342,11 +357,18 @@ Adds the player ID to the added players list in changes, so that the server code
 addPlayer : PlayerId -> PlayerInfo player -> ServerState gamestate player -> ServerState gamestate player
 addPlayer playerid info state =
     let
+        gameid =
+            info.gameid
+
         tuple =
-            ( info.gameid, playerid )
+            ( gameid, playerid )
+
+        players =
+            adjoin playerid <| getGamePlayers gameid state
     in
     { state
         | playerDict = Dict.insert playerid info state.playerDict
+        , gamePlayersDict = Dict.insert gameid players state.gamePlayersDict
         , changes =
             case state.changes of
                 Nothing ->
@@ -381,10 +403,15 @@ removePlayer playerid state =
             let
                 tuple =
                     ( gameid, playerid )
+
+                players =
+                    LE.remove playerid <| getGamePlayers gameid state
             in
             { state
                 | playerDict =
                     Dict.remove playerid state.playerDict
+                , gamePlayersDict =
+                    Dict.insert gameid players state.gamePlayersDict
                 , changes =
                     case state.changes of
                         Nothing ->
@@ -562,19 +589,14 @@ getGame gameid state =
 
 {-| Update the gamestate for a GameId.
 
-Pass `Nothing` to remove the game's state.
+Use `removeGame` to delete a game.
 
 -}
-updateGame : GameId -> Maybe gamestate -> ServerState gamestate player -> ServerState gamestate player
+updateGame : GameId -> gamestate -> ServerState gamestate player -> ServerState gamestate player
 updateGame gameid gamestate state =
     { state
         | gameDict =
-            case gamestate of
-                Nothing ->
-                    Dict.remove gameid state.gameDict
-
-                Just gs ->
-                    Dict.insert gameid gs state.gameDict
+            Dict.insert gameid gamestate state.gameDict
     }
 
 
@@ -594,17 +616,43 @@ getPlayer playerid state =
 
 {-| Update the PlyaerInfo for a PlayerId.
 
-Pass `Nothing` to remove the player's info.
+Use `removePlayer` to delete a player.
 
 -}
-updatePlayer : PlayerId -> Maybe (PlayerInfo player) -> ServerState gamestate player -> ServerState gamestate player
+updatePlayer : PlayerId -> PlayerInfo player -> ServerState gamestate player -> ServerState gamestate player
 updatePlayer playerid info state =
     { state
         | playerDict =
-            case info of
-                Nothing ->
-                    Dict.remove playerid state.playerDict
-
-                Just pi ->
-                    Dict.insert playerid pi state.playerDict
+            Dict.insert playerid info state.playerDict
     }
+
+
+{-| Get the player IDs for a game ID.
+-}
+getGamePlayers : GameId -> ServerState gamestate player -> List PlayerId
+getGamePlayers gameid state =
+    case Dict.get gameid state.gamePlayersDict of
+        Nothing ->
+            []
+
+        Just pids ->
+            pids
+
+
+{-| Return true if the GameId is in the public games list.
+-}
+isPublicGame : GameId -> ServerState gamestate player -> Bool
+isPublicGame gameid state =
+    case LE.find (.gameid >> (==) gameid) state.publicGames of
+        Just _ ->
+            True
+
+        Nothing ->
+            False
+
+
+{-| Return true if the GameId is NOT in the public games list.
+-}
+isPrivateGame : GameId -> ServerState gamestate player -> Bool
+isPrivateGame gameid state =
+    not <| isPublicGame gameid state
