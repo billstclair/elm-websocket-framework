@@ -99,6 +99,7 @@ import Random exposing (Generator)
 import Task
 import WebSocket
 import WebSocketFramework.EncodeDecode exposing (decodeMessage, encodeMessage)
+import WebSocketFramework.InternalTypes exposing (DictsWrapper(..), ServerDicts)
 import WebSocketFramework.Types as Types
     exposing
         ( Changes
@@ -288,8 +289,17 @@ Adds the game ID to the added games list in changes, so that the server code wil
 -}
 addGame : GameId -> gamestate -> ServerState gamestate player -> ServerState gamestate player
 addGame gameid gamestate state =
+    let
+        (DictsWrapper dicts) =
+            state.dicts
+    in
     { state
-        | gameDict = Dict.insert gameid gamestate state.gameDict
+        | dicts =
+            DictsWrapper
+                { dicts
+                    | gameDict =
+                        Dict.insert gameid gamestate dicts.gameDict
+                }
         , changes =
             case state.changes of
                 Nothing ->
@@ -318,12 +328,27 @@ removeGame gameid playerids state =
     let
         pids =
             getGamePlayers gameid state
+
+        (DictsWrapper dicts) =
+            state.dicts
+
+        gameDict =
+            Dict.remove gameid dicts.gameDict
+
+        playerDict =
+            List.foldl Dict.remove dicts.playerDict playerids
+
+        gamePlayersDict =
+            Dict.remove gameid dicts.gamePlayersDict
     in
     { state
-        | gameDict = Dict.remove gameid state.gameDict
-        , playerDict =
-            List.foldl Dict.remove state.playerDict playerids
-        , gamePlayersDict = Dict.remove gameid state.gamePlayersDict
+        | dicts =
+            DictsWrapper
+                { dicts
+                    | gameDict = gameDict
+                    , playerDict = playerDict
+                    , gamePlayersDict = gamePlayersDict
+                }
         , publicGames = removePublicGame gameid state.publicGames
         , changes =
             case state.changes of
@@ -369,10 +394,23 @@ addPlayer playerid info state =
 
         players =
             adjoin playerid <| getGamePlayers gameid state
+
+        (DictsWrapper dicts) =
+            state.dicts
+
+        playerDict =
+            Dict.insert playerid info dicts.playerDict
+
+        gamePlayersDict =
+            Dict.insert gameid players dicts.gamePlayersDict
     in
     { state
-        | playerDict = Dict.insert playerid info state.playerDict
-        , gamePlayersDict = Dict.insert gameid players state.gamePlayersDict
+        | dicts =
+            DictsWrapper
+                { dicts
+                    | playerDict = playerDict
+                    , gamePlayersDict = gamePlayersDict
+                }
         , changes =
             case state.changes of
                 Nothing ->
@@ -399,7 +437,11 @@ Adds the player ID to the removed players list in changes, so that the server co
 -}
 removePlayer : PlayerId -> ServerState gamestate player -> ServerState gamestate player
 removePlayer playerid state =
-    case Dict.get playerid state.playerDict of
+    let
+        (DictsWrapper dicts) =
+            state.dicts
+    in
+    case Dict.get playerid dicts.playerDict of
         Nothing ->
             state
 
@@ -410,12 +452,20 @@ removePlayer playerid state =
 
                 players =
                     LE.remove playerid <| getGamePlayers gameid state
+
+                playerDict =
+                    Dict.remove playerid dicts.playerDict
+
+                gamePlayersDict =
+                    Dict.insert gameid players dicts.gamePlayersDict
             in
             { state
-                | playerDict =
-                    Dict.remove playerid state.playerDict
-                , gamePlayersDict =
-                    Dict.insert gameid players state.gamePlayersDict
+                | dicts =
+                    DictsWrapper
+                        { dicts
+                            | playerDict = playerDict
+                            , gamePlayersDict = gamePlayersDict
+                        }
                 , changes =
                     case state.changes of
                         Nothing ->
@@ -442,7 +492,11 @@ If it is, return the `gamestate`. Otherwise wrap the message in an `ErrorRsp`.
 -}
 checkOnlyGameid : ServerState gamestate player -> message -> GameId -> Result (ErrorRsp message) gamestate
 checkOnlyGameid state message gameid =
-    case Dict.get gameid state.gameDict of
+    let
+        (DictsWrapper dicts) =
+            state.dicts
+    in
+    case Dict.get gameid dicts.gameDict of
         Just gameState ->
             Ok gameState
 
@@ -459,7 +513,11 @@ Otherwise wrap the message in an `ErrorRsp`.
 -}
 checkPlayerid : ServerState gamestate player -> message -> PlayerId -> Result (ErrorRsp message) (PlayerInfo player)
 checkPlayerid state message playerid =
-    case Dict.get playerid state.playerDict of
+    let
+        (DictsWrapper dicts) =
+            state.dicts
+    in
+    case Dict.get playerid dicts.playerDict of
         Nothing ->
             Err <| errorRsp message ("Unknown playerid " ++ playerid)
 
@@ -526,9 +584,13 @@ randomConstant value =
 
 uniqueGameidGenerator : ServerState gamestate player -> Generator GameId
 uniqueGameidGenerator state =
+    let
+        (DictsWrapper dicts) =
+            state.dicts
+    in
     Random.andThen
         (\gameid ->
-            case Dict.get gameid state.gameDict of
+            case Dict.get gameid dicts.gameDict of
                 Nothing ->
                     randomConstant gameid
 
@@ -545,8 +607,11 @@ uniquePlayeridGenerator state =
             let
                 playerid =
                     "P" ++ gameid
+
+                (DictsWrapper dicts) =
+                    state.dicts
             in
-            case Dict.get playerid state.playerDict of
+            case Dict.get playerid dicts.playerDict of
                 Nothing ->
                     randomConstant playerid
 
@@ -588,7 +653,11 @@ newPlayerid state =
 -}
 getGame : GameId -> ServerState gamestate player -> Maybe gamestate
 getGame gameid state =
-    Dict.get gameid state.gameDict
+    let
+        (DictsWrapper dicts) =
+            state.dicts
+    in
+    Dict.get gameid dicts.gameDict
 
 
 {-| Update the gamestate for a GameId.
@@ -598,9 +667,17 @@ Use `removeGame` to delete a game.
 -}
 updateGame : GameId -> gamestate -> ServerState gamestate player -> ServerState gamestate player
 updateGame gameid gamestate state =
+    let
+        (DictsWrapper dicts) =
+            state.dicts
+    in
     { state
-        | gameDict =
-            Dict.insert gameid gamestate state.gameDict
+        | dicts =
+            DictsWrapper
+                { dicts
+                    | gameDict =
+                        Dict.insert gameid gamestate dicts.gameDict
+                }
     }
 
 
@@ -608,14 +685,22 @@ updateGame gameid gamestate state =
 -}
 gameCount : ServerState gamestate player -> Int
 gameCount state =
-    Dict.size state.gameDict
+    let
+        (DictsWrapper dicts) =
+            state.dicts
+    in
+    Dict.size dicts.gameDict
 
 
 {-| Look up the PlayerInfo for a PlayerId
 -}
 getPlayer : PlayerId -> ServerState gamestate player -> Maybe (PlayerInfo player)
 getPlayer playerid state =
-    Dict.get playerid state.playerDict
+    let
+        (DictsWrapper dicts) =
+            state.dicts
+    in
+    Dict.get playerid dicts.playerDict
 
 
 {-| Update the PlyaerInfo for a PlayerId.
@@ -625,9 +710,17 @@ Use `removePlayer` to delete a player.
 -}
 updatePlayer : PlayerId -> PlayerInfo player -> ServerState gamestate player -> ServerState gamestate player
 updatePlayer playerid info state =
+    let
+        (DictsWrapper dicts) =
+            state.dicts
+    in
     { state
-        | playerDict =
-            Dict.insert playerid info state.playerDict
+        | dicts =
+            DictsWrapper
+                { dicts
+                    | playerDict =
+                        Dict.insert playerid info dicts.playerDict
+                }
     }
 
 
@@ -635,7 +728,11 @@ updatePlayer playerid info state =
 -}
 getGamePlayers : GameId -> ServerState gamestate player -> List PlayerId
 getGamePlayers gameid state =
-    case Dict.get gameid state.gamePlayersDict of
+    let
+        (DictsWrapper dicts) =
+            state.dicts
+    in
+    case Dict.get gameid dicts.gamePlayersDict of
         Nothing ->
             []
 

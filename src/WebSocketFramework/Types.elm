@@ -1,7 +1,7 @@
 ---------------------------------------------------------------------
 --
 -- Types.elm
--- Internal types for WebSocketFramework module.
+-- Shared types for WebSocketFramework module.
 -- Copyright (c) 2018 Bill St. Clair <billstclair@gmail.com>
 -- Some rights reserved.
 -- Distributed under the MIT License
@@ -14,6 +14,7 @@ module WebSocketFramework.Types
     exposing
         ( Changes
         , DecoderPlist
+        , Dicts
         , EncodeDecode
         , Error
         , ErrorKind(..)
@@ -46,7 +47,8 @@ module WebSocketFramework.Types
 
 # State
 
-@docs ServerState, ServerInterface, PlayerInfo, PublicGame, PublicGames, Changes
+@docs ServerState, Dicts, ServerInterface
+@docs PlayerInfo, PublicGame, PublicGames, Changes
 
 
 # Empty states
@@ -96,6 +98,12 @@ import Json.Decode as JD exposing (Decoder)
 import Json.Encode as JE exposing (Value)
 import Random
 import String.Extra as SE
+import WebSocketFramework.InternalTypes as IT
+    exposing
+        ( DictsWrapper(..)
+        , ServerDicts
+        , emptyServerDicts
+        )
 
 
 {-| An alias for `String`.
@@ -107,13 +115,13 @@ type alias ServerUrl =
 {-| An alias for `String`.
 -}
 type alias GameId =
-    String
+    IT.GameId
 
 
 {-| An alias for `String`.
 -}
 type alias PlayerId =
-    String
+    IT.PlayerId
 
 
 {-| A list of key/value pairs.
@@ -228,9 +236,7 @@ type alias MessageToGameid message =
 {-| Information about a player in a game
 -}
 type alias PlayerInfo player =
-    { gameid : GameId
-    , player : player
-    }
+    IT.PlayerInfo player
 
 
 {-| If your server supports public games, this represents the game id and name of the creator of the game.
@@ -267,15 +273,19 @@ type alias Changes =
     }
 
 
+{-| Opaque type used to store game and player state.
+-}
+type alias Dicts gamestate player =
+    DictsWrapper (ServerDicts gamestate player)
+
+
 {-| The part of the server state that is independent from its socket connections.
 
 You will rarely access the three `Dict`s directly. Instead, use `addGame`, `addPlayer`, `getGame`, `getPlayer`, `updateGame`, `updatePlayer`, `removeGame`, `removePlayer` from `WebsocketFramework.ServerInterface`.
 
 -}
 type alias ServerState gamestate player =
-    { gameDict : Dict GameId gamestate
-    , playerDict : Dict PlayerId (PlayerInfo player)
-    , gamePlayersDict : Dict GameId (List PlayerId)
+    { dicts : Dicts gamestate player
     , publicGames : PublicGames
     , state : Maybe gamestate --used by servers with no concept of game
     , seed : Random.Seed
@@ -291,9 +301,7 @@ if you use `newGameid` and `newPlayerid` in `WebSocketFramework.ServerInterface`
 -}
 emptyServerState : Maybe gamestate -> ServerState gamestate player
 emptyServerState gamestate =
-    { gameDict = Dict.empty
-    , playerDict = Dict.empty
-    , gamePlayersDict = Dict.empty
+    { dicts = DictsWrapper emptyServerDicts
     , publicGames = emptyPublicGames
     , state = gamestate
     , seed = Random.initialSeed 0
