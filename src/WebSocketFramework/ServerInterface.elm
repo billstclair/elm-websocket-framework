@@ -703,7 +703,7 @@ getPlayer playerid state =
     Dict.get playerid dicts.playerDict
 
 
-{-| Update the PlyaerInfo for a PlayerId.
+{-| Update the PlayerInfo for a PlayerId.
 
 Use `removePlayer` to delete a player.
 

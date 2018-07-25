@@ -233,10 +233,14 @@ type alias MessageToGameid message =
     message -> Maybe GameId
 
 
-{-| Information about a player in a game
+{-| Information about a player in a game.
 -}
 type alias PlayerInfo player =
-    IT.PlayerInfo player
+    -- This is a copy of `InternalTypes.PlayerInfo`.
+    -- It is copied here for the documentation
+    { gameid : GameId
+    , player : player
+    }
 
 
 {-| If your server supports public games, this represents the game id and name of the creator of the game.
@@ -281,7 +285,7 @@ type alias Dicts gamestate player =
 
 {-| The part of the server state that is independent from its socket connections.
 
-To access the opaque `dicts`, use `addGame`, `addPlayer`, `getGame`, `getPlayer`, `getPlayerGames`, `updateGame`, `updatePlayer`, `removeGame`, `removePlayer` from `WebsocketFramework.ServerInterface`.
+To access the opaque `dicts`, use `addGame`, `addPlayer`, `getGame`, `getPlayer`, `getGamePlayers`, `updateGame`, `updatePlayer`, `removeGame`, `removePlayer` from `WebsocketFramework.ServerInterface`.
 
 -}
 type alias ServerState gamestate player =
