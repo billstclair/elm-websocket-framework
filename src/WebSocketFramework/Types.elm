@@ -10,37 +10,18 @@
 ----------------------------------------------------------------------
 
 
-module WebSocketFramework.Types
-    exposing
-        ( Changes
-        , DecoderPlist
-        , Dicts
-        , EncodeDecode
-        , Error
-        , ErrorKind(..)
-        , ErrorRsp
-        , GameId
-        , InputPort
-        , MessageDecoder
-        , MessageEncoder
-        , MessageToGameid
-        , ModeChecker
-        , OutputPort
-        , PlayerId
-        , PlayerInfo
-        , Plist
-        , PublicGame
-        , PublicGames
-        , RawMessage
-        , ReqRsp(..)
-        , ServerInterface(..)
-        , ServerMessageProcessor
-        , ServerState
-        , ServerUrl
-        , emptyPublicGames
-        , emptyServerState
-        , printifyString
-        )
+module WebSocketFramework.Types exposing
+    ( ServerState, Dicts, ServerInterface(..)
+    , PlayerInfo, PublicGame, PublicGames, Changes
+    , emptyServerState, emptyPublicGames
+    , RawMessage, ReqRsp(..), Plist, ErrorRsp
+    , ServerMessageProcessor, MessageToGameid, ModeChecker
+    , MessageDecoder, MessageEncoder, EncodeDecode, DecoderPlist
+    , printifyString
+    , InputPort, OutputPort
+    , ErrorKind(..), Error
+    , GameId, PlayerId, ServerUrl
+    )
 
 {-| Types used by the rest of the WebSocketFramework modules.
 

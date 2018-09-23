@@ -10,15 +10,14 @@
 ----------------------------------------------------------------------
 
 
-module WebSocketFramework.InternalTypes
-    exposing
-        ( DictsWrapper(..)
-        , GameId
-        , PlayerId
-        , PlayerInfo
-        , ServerDicts
-        , emptyServerDicts
-        )
+module WebSocketFramework.InternalTypes exposing
+    ( DictsWrapper(..)
+    , GameId
+    , PlayerId
+    , PlayerInfo
+    , ServerDicts
+    , emptyServerDicts
+    )
 
 import Dict exposing (Dict)
 

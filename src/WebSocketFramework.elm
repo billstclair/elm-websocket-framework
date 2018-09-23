@@ -10,14 +10,10 @@
 ----------------------------------------------------------------------
 
 
-module WebSocketFramework
-    exposing
-        ( decodePlist
-        , makeProxyServer
-        , makeServer
-        , send
-        , unknownMessage
-        )
+module WebSocketFramework exposing
+    ( makeServer, makeProxyServer
+    , decodePlist, send, unknownMessage
+    )
 
 {-| Expose the most-used functions from `WebSocketFramework.ServerInterface`.
 

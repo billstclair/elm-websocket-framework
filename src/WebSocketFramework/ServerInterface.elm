@@ -11,35 +11,18 @@
 ----------------------------------------------------------------------
 
 
-module WebSocketFramework.ServerInterface
-    exposing
-        ( addGame
-        , addPlayer
-        , appendPublicGames
-        , checkGameid
-        , checkOnlyGameid
-        , checkPlayerid
-        , dummyGameid
-        , errorRsp
-        , fullMessageProcessor
-        , gameCount
-        , getGame
-        , getGamePlayers
-        , getPlayer
-        , getServer
-        , isPrivateGame
-        , isPublicGame
-        , makeProxyServer
-        , makeServer
-        , newGameid
-        , newPlayerid
-        , removeGame
-        , removePlayer
-        , removePublicGame
-        , send
-        , updateGame
-        , updatePlayer
-        )
+module WebSocketFramework.ServerInterface exposing
+    ( makeServer, makeProxyServer, fullMessageProcessor
+    , send
+    , getServer
+    , checkOnlyGameid, checkGameid, checkPlayerid, dummyGameid
+    , addGame, addPlayer, removeGame, removePlayer
+    , appendPublicGames, removePublicGame
+    , newGameid, newPlayerid
+    , getGame, updateGame, gameCount, getPlayer, updatePlayer, getGamePlayers
+    , isPublicGame, isPrivateGame
+    , errorRsp
+    )
 
 {-| Functions that connect the client code to the server.
 
@@ -374,6 +357,7 @@ adjoin : a -> List a -> List a
 adjoin a list =
     if List.member a list then
         list
+
     else
         a :: list
 

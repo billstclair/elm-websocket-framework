@@ -10,18 +10,10 @@
 ----------------------------------------------------------------------
 
 
-module WebSocketFramework.EncodeDecode
-    exposing
-        ( decodeMessage
-        , decodePlist
-        , decodeRawMessage
-        , encodeMessage
-        , genericMessageDecoder
-        , messageDecoder
-        , messageEncoder
-        , rawMessageDecoder
-        , rawMessageEncoder
-        )
+module WebSocketFramework.EncodeDecode exposing
+    ( decodeMessage, genericMessageDecoder, encodeMessage, messageDecoder, messageEncoder
+    , decodeRawMessage, rawMessageDecoder, rawMessageEncoder, decodePlist
+    )
 
 {-| The `EncodeDecode` module handles translation of strings sent over the wire to and from your message types.
 
@@ -52,6 +44,7 @@ import WebSocketFramework.Types as Types
         , ReqRsp(..)
         , ServerInterface(..)
         )
+
 
 
 -- Message
