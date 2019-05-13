@@ -299,6 +299,7 @@ emptyServerState gamestate =
 type ServerInterface gamestate player message msg
     = ServerInterface
         { server : ServerUrl
+        , serverPort : Value -> Cmd msg
         , wrapper : ServerInterface gamestate player message msg -> message -> msg
         , state : Maybe (ServerState gamestate player)
         , sender : ServerInterface gamestate player message msg -> message -> Cmd msg
@@ -331,4 +332,4 @@ closingQuote =
 -}
 printifyString : String -> String
 printifyString string =
-    SE.replace "\"" closingQuote string
+    String.replace "\"" closingQuote string

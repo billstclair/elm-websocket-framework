@@ -50,11 +50,33 @@ import WebSocketFramework.Types as Types
 -- Message
 
 
+convertErr : Result JD.Error a -> Result String a
+convertErr result =
+    case result of
+        Ok a ->
+            Ok a
+
+        Err err ->
+            Err <| JD.errorToString err
+
+
+decodeString : Decoder a -> String -> Result String a
+decodeString decoder string =
+    JD.decodeString decoder string
+        |> convertErr
+
+
+decodeValue : Decoder a -> Value -> Result String a
+decodeValue decoder value =
+    JD.decodeValue decoder value
+        |> convertErr
+
+
 {-| Turn a string into a raw message.
 -}
 decodeRawMessage : String -> Result String RawMessage
 decodeRawMessage string =
-    JD.decodeString rawMessageDecoder string
+    decodeString rawMessageDecoder string
 
 
 {-| The `Decoder` used by `decodeRawMessage`
@@ -82,11 +104,11 @@ decodeReqRsp reqrsp message =
             Err <| "Expecting 'req' or 'rsp', got: '" ++ reqrsp ++ "'"
 
 
-{-| User a `MessageDecoder` that you write to turn a string into a message.
+{-| Use a `MessageDecoder` that you write to turn a string into a message.
 -}
 decodeMessage : MessageDecoder message -> String -> Result String message
 decodeMessage decoder json =
-    JD.decodeString (messageDecoder decoder) json
+    decodeString (messageDecoder decoder) json
 
 
 {-| Create a `Decoder` for `decodeMessage`.
@@ -147,7 +169,7 @@ messageEncoder encoder message =
 -}
 rawMessageEncoder : RawMessage -> Value
 rawMessageEncoder message =
-    JE.list
+    JE.list identity
         [ JE.string message.reqrsp
         , JE.string message.msg
         , JE.object message.plist
@@ -158,7 +180,7 @@ rawMessageEncoder message =
 -}
 decodePlist : Decoder message -> Plist -> Result String message
 decodePlist decoder plist =
-    JD.decodeValue decoder <| JE.object plist
+    decodeValue decoder <| JE.object plist
 
 
 {-| Simplify the writing of `MessageDecoder` definitions.

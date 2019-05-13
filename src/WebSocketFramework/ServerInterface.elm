@@ -77,10 +77,11 @@ module WebSocketFramework.ServerInterface exposing
 import Char
 import Debug exposing (log)
 import Dict exposing (Dict)
+import Json.Encode exposing (Value)
 import List.Extra as LE
+import PortFunnel.WebSocket as WebSocket
 import Random exposing (Generator)
 import Task
-import WebSocket
 import WebSocketFramework.EncodeDecode exposing (decodeMessage, encodeMessage)
 import WebSocketFramework.InternalTypes exposing (DictsWrapper(..), ServerDicts)
 import WebSocketFramework.Types as Types
@@ -123,6 +124,7 @@ makeProxyServer : ServerMessageProcessor gamestate player message -> (ServerInte
 makeProxyServer messageProcessor wrapper =
     ServerInterface
         { server = ""
+        , serverPort = \_ -> Cmd.none
         , wrapper = wrapper
         , state = Nothing
         , sender = proxySender messageProcessor
@@ -139,19 +141,18 @@ Usually passed as the first arg to `makeProxyServer`.
 fullMessageProcessor : EncodeDecode message -> ServerMessageProcessor gamestate player message -> ServerMessageProcessor gamestate player message
 fullMessageProcessor encodeDecode messageProcessor state message =
     let
-        err =
-            \req msg ->
-                case encodeDecode.errorWrapper of
-                    Nothing ->
-                        Nothing
+        err req2 msg =
+            case encodeDecode.errorWrapper of
+                Nothing ->
+                    Nothing
 
-                    Just wrapper ->
-                        Just <|
-                            wrapper
-                                { kind = JsonParseError
-                                , description = req
-                                , message = Err msg
-                                }
+                Just wrapper ->
+                    Just <|
+                        wrapper
+                            { kind = JsonParseError
+                            , description = req2
+                            , message = Err msg
+                            }
 
         req =
             encodeMessage encodeDecode.encoder message
@@ -198,10 +199,11 @@ fullMessageProcessor encodeDecode messageProcessor state message =
 The `msg` will usually be a no-operation message. It is only used to fill a slot in the returned `ServerInterface`. That slot is only used by the proxy server.
 
 -}
-makeServer : MessageEncoder message -> ServerUrl -> msg -> ServerInterface gamestate player message msg
-makeServer encoder server msg =
+makeServer : (Value -> Cmd msg) -> MessageEncoder message -> ServerUrl -> msg -> ServerInterface gamestate player message msg
+makeServer serverPort encoder server msg =
     ServerInterface
         { server = server
+        , serverPort = serverPort
         , wrapper = \_ _ -> msg
         , state = Nothing
         , sender = sender encoder
@@ -253,7 +255,12 @@ proxySender processor (ServerInterface interface) message =
 
 sender : MessageEncoder message -> ServerInterface gamestate player message msg -> message -> Cmd msg
 sender encoder (ServerInterface interface) message =
-    WebSocket.send interface.server (encodeMessage encoder message)
+    let
+        socketMessage =
+            WebSocket.makeSend interface.server
+                (encodeMessage encoder message)
+    in
+    WebSocket.send interface.serverPort socketMessage
 
 
 {-| Create the ErrorRsp record returned in the errors from `CheckOnlyGameid`, `checkGameid`, and `checkPlayerid`.
@@ -563,7 +570,7 @@ gameidGenerator =
 
 randomConstant : a -> Generator a
 randomConstant value =
-    Random.map (\_ -> value) Random.bool
+    Random.constant value
 
 
 uniqueGameidGenerator : ServerState gamestate player -> Generator GameId

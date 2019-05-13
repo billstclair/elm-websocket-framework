@@ -29,7 +29,7 @@ module WebSocketFramework exposing
 
 -}
 
-import Json.Decode as JD exposing (Decoder)
+import Json.Decode as JD exposing (Decoder, Value)
 import WebSocketFramework.EncodeDecode as EncodeDecode
 import WebSocketFramework.ServerInterface as ServerInterface
 import WebSocketFramework.Types
@@ -58,7 +58,7 @@ makeProxyServer =
 The `msg` will usually be a no-operation message. It is only used to fill a slot in the returned `ServerInterface`. That slot is only used by the proxy server.
 
 -}
-makeServer : MessageEncoder message -> ServerUrl -> msg -> ServerInterface gamestate player message msg
+makeServer : (Value -> Cmd msg) -> MessageEncoder message -> ServerUrl -> msg -> ServerInterface gamestate player message msg
 makeServer =
     ServerInterface.makeServer
 
