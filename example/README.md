@@ -7,7 +7,7 @@ To run the example in `elm-reactor`:
     cd .../elm-websocket-framework/example
     elm reactor
     
-Then aim your browser at http://localhost:8000/Example.elm
+Then aim your browser at http://localhost:8000/Main.elm
 
 It starts out using a local "server", with no communication over the network.
 

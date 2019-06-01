@@ -10,15 +10,15 @@
 ----------------------------------------------------------------------
 
 
-module ExampleInterface
-    exposing
-        ( GameState
-        , Message(..)
-        , Player
-        , messageDecoder
-        , messageEncoder
-        , messageProcessor
-        )
+module ExampleInterface exposing
+    ( GameState
+    , Message(..)
+    , Player
+    , messageDecoder
+    , messageEncoder
+    , messageProcessor
+    , toString
+    )
 
 import Debug exposing (log)
 import Json.Decode as JD exposing (Decoder)
@@ -39,6 +39,11 @@ type Message
     = AddMessage Int Int
     | MultiplyMessage Int Int
     | ResultMessage String
+
+
+toString : Int -> String
+toString =
+    String.fromInt
 
 
 messageProcessor : ServerState GameState Player -> Message -> ( ServerState GameState Player, Maybe Message )
