@@ -101,9 +101,14 @@ fullProcessor =
     fullMessageProcessor encodeDecode messageProcessor
 
 
+proxyServer : ServerInterface GameState Player Message Msg
+proxyServer =
+    makeProxyServer fullProcessor (IncomingMessage True)
+
+
 init : () -> ( Model, Cmd msg )
 init _ =
-    ( { interface = makeProxyServer fullProcessor (IncomingMessage True)
+    ( { interface = proxyServer
       , urlString = "ws://localhost:8081/"
       , serverUrl = Nothing
       , gameid = ""
@@ -229,7 +234,7 @@ update msg model =
                         Just model.urlString
                 , interface =
                     if disconnect then
-                        makeProxyServer fullProcessor (IncomingMessage True)
+                        proxyServer
 
                     else
                         makeServer cmdPort messageEncoder model.urlString Noop
@@ -374,6 +379,7 @@ socketHandler response state mdl =
         WebSocket.ClosedResponse { code, wasClean, expected } ->
             { model
                 | serverUrl = Nothing
+                , interface = proxyServer
                 , messages =
                     ("Closed, " ++ closedString code wasClean expected)
                         :: model.messages
