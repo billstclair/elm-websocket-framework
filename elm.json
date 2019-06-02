@@ -3,7 +3,7 @@
     "name": "billstclair/elm-websocket-framework",
     "summary": "elm-websocket-framework eases the creation of server-based applications.",
     "license": "MIT",
-    "version": "13.0.0",
+    "version": "13.0.1",
     "exposed-modules": [
         "WebSocketFramework",
         "WebSocketFramework.EncodeDecode",
