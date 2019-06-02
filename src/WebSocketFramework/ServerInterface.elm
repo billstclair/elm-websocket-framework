@@ -75,7 +75,6 @@ module WebSocketFramework.ServerInterface exposing
 -}
 
 import Char
-import Debug exposing (log)
 import Dict exposing (Dict)
 import Json.Encode exposing (Value)
 import List.Extra as LE
@@ -156,10 +155,6 @@ fullMessageProcessor encodeDecode messageProcessor state message =
 
         req =
             encodeMessage encodeDecode.encoder message
-
-        dbg =
-            log "fullMessageProcesor, req" <|
-                printifyString req
     in
     case decodeMessage encodeDecode.decoder req of
         Err msg ->
@@ -179,10 +174,6 @@ fullMessageProcessor encodeDecode messageProcessor state message =
                             let
                                 rsp =
                                     encodeMessage encodeDecode.encoder r
-
-                                dbg2 =
-                                    log "  rsp" <|
-                                        printifyString rsp
                             in
                             case decodeMessage encodeDecode.decoder rsp of
                                 Err msg ->
