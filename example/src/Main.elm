@@ -161,16 +161,9 @@ update msg model =
                     )
 
         Process value ->
-            let
-                model2 =
-                    { model
-                        | messages =
-                            ("sock: " ++ JE.encode 0 value) :: model.messages
-                    }
-            in
-            case PortFunnels.processValue funnelDict value model2.portState model2 of
+            case PortFunnels.processValue funnelDict value model.portState model of
                 Err error ->
-                    ( { model2 | messages = ("err:  " ++ error) :: model2.messages }
+                    ( { model | messages = ("err:  " ++ error) :: model.messages }
                     , Cmd.none
                     )
 
