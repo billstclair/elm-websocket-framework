@@ -12,6 +12,7 @@
 
 module WebSocketFramework.EncodeDecode exposing
     ( decodeMessage, genericMessageDecoder, encodeMessage, messageDecoder, messageEncoder
+    , encodeStatistics, statisticsDecoder
     , decodeRawMessage, rawMessageDecoder, rawMessageEncoder, decodePlist
     )
 
@@ -20,9 +21,10 @@ module WebSocketFramework.EncodeDecode exposing
 
 # High-level functions
 
-Your WebSocket subscription message handler will need to use `decodeMessage`, and you will often use `genericMessageDecoder`, but you'll rarely directly use the rest of the functions in this module.
+Your WebSocket subscription message handler will need to use `decodeMessage`, you will often use `genericMessageDecoder`, and, if you track statistics, you'll likely need the statistics encoder & decoder, but you'll rarely directly use the rest of the functions in this module.
 
 @docs decodeMessage, genericMessageDecoder, encodeMessage, messageDecoder, messageEncoder
+@docs encodeStatistics, statisticsDecoder
 
 
 # Low-level functions
@@ -43,6 +45,7 @@ import WebSocketFramework.Types as Types
         , RawMessage
         , ReqRsp(..)
         , ServerInterface(..)
+        , Statistics
         )
 
 
@@ -212,3 +215,17 @@ decoderPlistDecoder decoderPlist typ msg plist =
 
         Just decoder ->
             decodePlist decoder plist
+
+
+{-| Encode a `Statistics` record.
+-}
+encodeStatistics : Statistics -> Value
+encodeStatistics statistics =
+    JE.dict identity JE.int statistics
+
+
+{-| Decoder for the `Statistics` record.
+-}
+statisticsDecoder : Decoder Statistics
+statisticsDecoder =
+    JD.dict JD.int
