@@ -17,6 +17,7 @@ module WebSocketFramework.Types exposing
     , RawMessage, ReqRsp(..), Plist, ErrorRsp
     , ServerMessageProcessor, MessageToGameid, ModeChecker
     , MessageDecoder, MessageEncoder, EncodeDecode, DecoderPlist
+    , Statistics, emptyStatistics
     , printifyString
     , InputPort, OutputPort
     , ErrorKind(..), Error
@@ -50,6 +51,11 @@ module WebSocketFramework.Types exposing
 # Message Encoding/Decoding
 
 @docs MessageDecoder, MessageEncoder, EncodeDecode, DecoderPlist
+
+
+# Statistics
+
+@docs Statistics, emptyStatistics
 
 
 # Utility
@@ -264,6 +270,23 @@ type alias Dicts gamestate player =
     DictsWrapper (ServerDicts gamestate player)
 
 
+{-| Track statistics about connections and games.
+-}
+type alias Statistics =
+    Dict String Int
+
+
+{-| Return a new `Statistics` record, with your value for the `statistics` field.
+
+Until you populate the ServerState.statistics field, no connection
+statistics will be gathered.
+
+-}
+emptyStatistics : Statistics
+emptyStatistics =
+    Dict.empty
+
+
 {-| The part of the server state that is independent from its socket connections.
 
 To access the opaque `dicts`, use `addGame`, `addPlayer`, `getGame`, `getPlayer`, `getGamePlayers`, `updateGame`, `updatePlayer`, `removeGame`, `removePlayer` from `WebsocketFramework.ServerInterface`.
@@ -275,6 +298,7 @@ type alias ServerState gamestate player =
     , state : Maybe gamestate --used by servers with no concept of game
     , seed : Random.Seed
     , changes : Maybe Changes
+    , statistics : Maybe Statistics
     }
 
 
@@ -282,6 +306,9 @@ type alias ServerState gamestate player =
 
 You'll need to initialize the `seed` property in your real server,
 if you use `newGameid` and `newPlayerid` in `WebSocketFramework.ServerInterface`.
+
+You'll need to initialize the `statistics` property, if you want to
+track statistics.
 
 -}
 emptyServerState : Maybe gamestate -> ServerState gamestate player
@@ -291,6 +318,7 @@ emptyServerState gamestate =
     , state = gamestate
     , seed = Random.initialSeed 0
     , changes = Nothing
+    , statistics = Nothing
     }
 
 

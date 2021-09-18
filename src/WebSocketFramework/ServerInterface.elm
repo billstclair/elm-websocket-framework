@@ -19,6 +19,8 @@ module WebSocketFramework.ServerInterface exposing
     , addGame, addPlayer, removeGame, removePlayer
     , appendPublicGames, removePublicGame
     , newGameid, newPlayerid
+    , getStatisticsProperty, setStatisticsProperty
+    , updateStatisticsProperty, maybeUpdateStatisticsProperty
     , getGame, updateGame, gameCount, getPlayer, updatePlayer, getGamePlayers
     , isPublicGame, isPrivateGame
     , errorRsp
@@ -62,6 +64,12 @@ module WebSocketFramework.ServerInterface exposing
 @docs newGameid, newPlayerid
 
 
+# Statistics
+
+@docs getStatisticsProperty, setStatisticsProperty
+@docs updateStatisticsProperty, maybeUpdateStatisticsProperty
+
+
 # Utilities
 
 @docs getGame, updateGame, gameCount, getPlayer, updatePlayer, getGamePlayers
@@ -82,7 +90,11 @@ import PortFunnel.WebSocket as WebSocket
 import Random exposing (Generator)
 import Task
 import WebSocketFramework.EncodeDecode exposing (decodeMessage, encodeMessage)
-import WebSocketFramework.InternalTypes exposing (DictsWrapper(..), ServerDicts)
+import WebSocketFramework.InternalTypes
+    exposing
+        ( DictsWrapper(..)
+        , ServerDicts
+        )
 import WebSocketFramework.Types as Types
     exposing
         ( Changes
@@ -101,6 +113,7 @@ import WebSocketFramework.Types as Types
         , ServerMessageProcessor
         , ServerState
         , ServerUrl
+        , Statistics
         , emptyPublicGames
         , emptyServerState
         , printifyString
@@ -739,3 +752,72 @@ isPublicGame gameid state =
 isPrivateGame : GameId -> ServerState gamestate player -> Bool
 isPrivateGame gameid state =
     not <| isPublicGame gameid state
+
+
+{-| Return the value of a statistics property,
+or Nothing if statistics are not being tracked or the property is unset.
+-}
+getStatisticsProperty : String -> ServerState gamestate player -> Maybe Int
+getStatisticsProperty property state =
+    case state.statistics of
+        Nothing ->
+            Nothing
+
+        Just statistics ->
+            Dict.get property statistics
+
+
+{-| Set the value of a statistics property,
+or do nothing if statistics are not being tracked.
+-}
+setStatisticsProperty : String -> Maybe Int -> ServerState gamestate player -> ServerState gamestate player
+setStatisticsProperty property value state =
+    case state.statistics of
+        Nothing ->
+            state
+
+        Just statistics ->
+            case value of
+                Nothing ->
+                    { state | statistics = Just <| Dict.remove property statistics }
+
+                Just v ->
+                    { state | statistics = Just <| Dict.insert property v statistics }
+
+
+{-| Update a statistics property.
+
+If not tracking statistics, the updater will not be called.
+Otherwise, it will receive Nothing if the property is not already set.
+If it returns Nothing, the property will be removed.
+
+-}
+updateStatisticsProperty : String -> (Maybe Int -> Maybe Int) -> ServerState gamestate player -> ServerState gamestate player
+updateStatisticsProperty property updater state =
+    case state.statistics of
+        Nothing ->
+            state
+
+        Just statistics ->
+            setStatisticsProperty property (updater <| Dict.get property statistics) state
+
+
+{-| If tracking statistics and the property is set, update it.
+-}
+maybeUpdateStatisticsProperty : String -> (Int -> Int) -> ServerState gamestate player -> ServerState gamestate player
+maybeUpdateStatisticsProperty property updater state =
+    case state.statistics of
+        Nothing ->
+            state
+
+        Just statistics ->
+            case Dict.get property statistics of
+                Nothing ->
+                    state
+
+                Just v ->
+                    { state
+                        | statistics =
+                            Dict.insert property (updater v) statistics
+                                |> Just
+                    }
