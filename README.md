@@ -10,7 +10,7 @@ The server side depends on [Node.js](https://nodejs.org/).
 
 For single-player use, and development, you can wrap your server-side code for client use, in `elm-reactor` if you want, then switch easily to using a real remote server.
 
-I have used this basic technology for both my [Spokes](https://gibgoygames.com/spokes/) and [Archmage](https://gibgoygames.com/archmage/) games. I made the Archmage version by copying and modifying the Spokes version. Now that I want a server for [Zephyrnot](https://zephyrnot.com) and [JSMaze](https://jsmaze.com), it's time to wrap it as a package, embodying my experience in a form everyone can use.
+I have used this basic technology for both my [Spokes](https://gibgoygames.com/spokes/) and [Archmage](https://gibgoygames.com/archmage/) games. I made the Archmage version by copying and modifying the Spokes version. Then I generalized the ideas, and have used it so far in [Zephyrnot](https://zephyrnot.com), [JSMaze](https://jsmaze.com), and [AGOG](https://agog.ninja).
 
 See the README in the [Example](https://github.com/billstclair/elm-websocket-framework/tree/master/example) directory for instructions on building and running the examples.
 
