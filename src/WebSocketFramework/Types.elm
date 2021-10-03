@@ -85,6 +85,7 @@ import Json.Decode as JD exposing (Decoder)
 import Json.Encode as JE exposing (Value)
 import Random
 import String.Extra as SE
+import Time exposing (Posix)
 import WebSocketFramework.InternalTypes as IT
     exposing
         ( DictsWrapper(..)
@@ -299,6 +300,7 @@ type alias ServerState gamestate player =
     , seed : Random.Seed
     , changes : Maybe Changes
     , statistics : Maybe Statistics
+    , time : Posix
     }
 
 
@@ -319,6 +321,7 @@ emptyServerState gamestate =
     , seed = Random.initialSeed 0
     , changes = Nothing
     , statistics = Nothing
+    , time = Time.millisToPosix 0
     }
 
 
